@@ -16,9 +16,10 @@
     <string name="title_activity_tab">TabActivity</string>
 
 
-    <string name="title_section1">Section 1</string>
-    <string name="title_section2">Section 2</string>
-    <string name="title_section3">Section 3</string>
-    <string name="title_activity_tab2">Tab2Activity</string>
+    <string name="title_section1">Main Page</string>
+    <string name="title_section2">Map</string>
+    <string name="title_section3">News</string>
+    <string name="title_section4">Help</string>
     <string name="title_activity_web">WebActivity</string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>

@@ -1,8 +1,8 @@
 package wsu_airpact_project.airpact_demo;
 
 import android.app.Activity;
+import android.app.DialogFragment;
 import android.content.Context;
-import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.Menu;
@@ -12,6 +12,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -32,9 +33,11 @@ public class MapActivity extends Activity implements OnMapReadyCallback
 		MapFragment mF = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
 		mF.getMapAsync(this);
 
-		Intent intent = getIntent();
-		latitude = intent.getDoubleExtra(MyActivity.CUR_LAT, 0.0);
-		longitude = intent.getDoubleExtra(MyActivity.CUR_LON, 0.0);
+		//Intent intent = getIntent();
+		//latitude = intent.getDoubleExtra(MyActivity.CUR_LAT, 0.0);
+		//longitude = intent.getDoubleExtra(MyActivity.CUR_LON, 0.0);
+		latitude = Globals.lastLatitude;
+		longitude = Globals.lastLongitude;
 	}
 
 
@@ -68,16 +71,23 @@ public class MapActivity extends Activity implements OnMapReadyCallback
 		LatLng currentLocation;
 //		Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
 
-		if(latitude==0.0&&longitude==0) { currentLocation=pullmanDefault; }
+		if(latitude==0.0&&longitude==0)
+		{
+			currentLocation=pullmanDefault;
+		}
 		else
 		{
 			currentLocation = new LatLng(latitude, longitude);
-			map.addMarker(new MarkerOptions().title("Current Location").snippet("You are here").position(currentLocation));
+			map.addMarker(new MarkerOptions().title("Current Location").snippet("You are here").position(currentLocation).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
 		}
 
 		map.setMyLocationEnabled(true);
 		map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 16));
 
-		Globals.siteList.addToMap(map, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+		if(!Globals.siteList.addToMap(map, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
+		{
+			DialogFragment dialog = new GoToLocationSettingsDialog();
+			dialog.show(getFragmentManager(), "turnOnLocation");
+		}
 	}
 }

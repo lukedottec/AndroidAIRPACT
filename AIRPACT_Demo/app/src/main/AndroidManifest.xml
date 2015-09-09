@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_INTERNAL_STORAGE" />
 
     <uses-feature
         android:glEsVersion="0x00020000"
@@ -90,19 +91,8 @@
 
         <activity
             android:name=".TabActivity"
-            android:label="@string/title_activity_tab" >
-        </activity>
-        <activity
-            android:name=".Tab2Activity"
-            android:label="@string/title_activity_tab2" >
-        </activity>
-        <activity
-            android:name=".WebActivity"
-            android:label="@string/title_activity_web"
-            android:parentActivityName=".MyActivity" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="wsu_airpact_project.airpact_demo.MyActivity" />
+            android:label="@string/title_activity_tab"
+            android:screenOrientation="portrait" >
         </activity>
     </application>
 

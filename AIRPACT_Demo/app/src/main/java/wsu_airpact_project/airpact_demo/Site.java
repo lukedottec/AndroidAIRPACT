@@ -7,6 +7,7 @@ import android.util.Log;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -152,12 +153,13 @@ public class Site
 		}
 	}
 
-	public void addSiteMarker(GoogleMap map)
+	public void addSiteMarker(GoogleMap map, float clr)
 	{
 		map.addMarker(new MarkerOptions()
 				.title(Name)
 				.snippet("AN Site")
-				.position(new LatLng(Latitude, Longitude)));
+				.position(new LatLng(Latitude, Longitude))
+				.icon(BitmapDescriptorFactory.defaultMarker(clr)));
 	}
 
 	public double getDistanceToLL(double lat, double lon)

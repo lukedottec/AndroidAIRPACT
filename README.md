@@ -1,2 +1,0 @@
-# AIRPACT
-Senior Project

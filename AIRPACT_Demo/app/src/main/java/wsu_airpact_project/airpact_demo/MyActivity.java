@@ -1,5 +1,6 @@
 package wsu_airpact_project.airpact_demo;
 
+import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
@@ -13,7 +14,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -21,20 +21,23 @@ import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+
 
 public class MyActivity extends ActionBarActivity  implements
 		ConnectionCallbacks, OnConnectionFailedListener, AdapterView.OnItemSelectedListener
 {
 
-	private static final String DEBUG_TAG = "MainActivityTag";
+	//private static final String DEBUG_TAG = "MainActivityTag";
 
 	protected static final String TAG = "basic-location-sample";
-	protected static String CUR_LAT="wsu_airpact_project.airpact_demo.CUR_LAT";
-	protected static String CUR_LON="wsu_airpact_project.airpact_demo.CUR_LON";
+	//protected static String CUR_LAT="wsu_airpact_project.airpact_demo.CUR_LAT";
+	//protected static String CUR_LON="wsu_airpact_project.airpact_demo.CUR_LON";
 	protected GoogleApiClient mGoogleApiClient;
 	protected Location mLastLocation;
-	protected TextView mLatitudeText;
-	protected TextView mLongitudeText;
 	protected Double latitude;
 	protected Double longitude;
 	protected Spinner dropDown;
@@ -47,9 +50,7 @@ public class MyActivity extends ActionBarActivity  implements
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_my);
-
-		mLatitudeText = (TextView) findViewById(R.id.textViewLatitudeCoordinate);
-		mLongitudeText = (TextView) findViewById(R.id.textViewLongitudeCoordinate);
+		Globals.myActivity = this;
 		latitude=0.0;
 		longitude=0.0;
 
@@ -60,13 +61,19 @@ public class MyActivity extends ActionBarActivity  implements
 		//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 
 		dropDown = (Spinner)findViewById(R.id.spinner);
-		Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+		if(!Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
+		{
+			DialogFragment dialog = new GoToLocationSettingsDialog();
+			dialog.show(getFragmentManager(), "turnOnLocation");
+		}
+
+		buildGoogleApiClient();
 	}
 
 	public void onItemSelected(AdapterView<?> parent, View view, int pos, long id)
 	{
-		String city = (String)parent.getItemAtPosition(pos);
-		Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
+		//String city = (String)parent.getItemAtPosition(pos);
+		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
 		Site currSite;
 		currSite = Globals.siteList.sites.get(pos);
 		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
@@ -79,14 +86,14 @@ public class MyActivity extends ActionBarActivity  implements
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.menu_my, menu);
 		return true;
-    }
+	}
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
- 		// Handle action bar item clicks here. The action bar will
- 		// automatically handle clicks on the Home/Up button, so long
- 		// as you specify a parent activity in AndroidManifest.xml.
- 		int id = item.getItemId();
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
 
 		//noinspection SimplifiableIfStatement
 		if (id == R.id.action_settings) {
@@ -100,11 +107,8 @@ public class MyActivity extends ActionBarActivity  implements
 
 	public void openMap(View view)
 	{
-		Intent intent = new Intent(this, MapActivity.class);
-
-		intent.putExtra(CUR_LAT, latitude);
-		intent.putExtra(CUR_LON, longitude);
-
+		//Intent intent = new Intent(this, MapActivity.class);
+		Intent intent = new Intent(this, TabActivity.class);
 		startActivity(intent);
 	}
 
@@ -113,24 +117,16 @@ public class MyActivity extends ActionBarActivity  implements
 		buildGoogleApiClient();
 	}
 
-	public void removeCoords(View view)
+	public void setDropDownSelection(String city)
 	{
-		latitude=0.0;
-		longitude=0.0;
-		updateLatLongLabels();
-	}
-
-	public void updateLatLongLabels()
-	{
-		if(latitude==0.0&&longitude==0.0)
-		{
-			mLatitudeText.setText("Unknown");
-			mLongitudeText.setText("Unknown");
-		}
-		else {
-			mLatitudeText.setText(String.valueOf(latitude));
-			mLongitudeText.setText(String.valueOf(longitude));
-		}
+		int i=0;
+		for(int j=0; j<dropDown.getCount(); j++)
+			if(dropDown.getItemAtPosition(j).toString().equalsIgnoreCase(city))
+			{
+				i=j;
+				break;
+			}
+		dropDown.setSelection(i);
 	}
 
 	public void openNews(View view)
@@ -170,52 +166,114 @@ public class MyActivity extends ActionBarActivity  implements
 	@Override
 	protected void onStart() {
 		super.onStart();
+		load();
 	}
 	@Override
-	protected void onStop() {
+	protected void onStop()
+	{
+		super.onStop();
 		if ((mGoogleApiClient!=null)&&(mGoogleApiClient.isConnected()))
 		{
 			mGoogleApiClient.disconnect();
 		}
-		super.onStop();
+		save();
 	}
 
 	@Override
 	public void onConnected(Bundle connectionHint) {
-	// Provides a simple way of getting a device's location and is well suited for
-	// applications that do not require a fine-grained location and that do not need location
-	// updates. Gets the best and most recent location currently available, which may be null
-	// in rare cases when a location is not available.
+		// Provides a simple way of getting a device's location and is well suited for
+		// applications that do not require a fine-grained location and that do not need location
+		// updates. Gets the best and most recent location currently available, which may be null
+		// in rare cases when a location is not available.
 		mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
 		if (mLastLocation != null)
 		{
 			latitude=mLastLocation.getLatitude();
 			longitude=mLastLocation.getLongitude();
-			updateLatLongLabels();
+			Globals.lastLatitude = latitude;
+			Globals.lastLongitude = longitude;
+			Globals.haveLocation = true;
+			findViewById(R.id.buttonGetCoords).setVisibility(View.INVISIBLE);
 
 			Site closest = Globals.siteList.getClosest(latitude, longitude);
-			closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
-			Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
+			//closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+			if(closest!=null) setDropDownSelection(closest.Name);
+			//Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
 		}
 		else
 		{
-			//Toast.makeText(this, R.string.no_location_detected, Toast.LENGTH_LONG).show();
-			Toast.makeText(this, "Location not found...", Toast.LENGTH_LONG).show();
+			//Toast.makeText(this, "Location not found...", Toast.LENGTH_LONG).show();
+			DialogFragment dialog = new GoToLocationSettingsDialog();
+			dialog.show(getFragmentManager(), "turnOnLocation");
+			DialogFragment dialog2 = new CannotConnectDialog();
+			dialog2.show(getFragmentManager(), "couldNotConnect");
 		}
 	}
 
 	@Override
 	public void onConnectionFailed(ConnectionResult result) {
-	// Refer to the javadoc for ConnectionResult to see what error codes might be returned in
-	// onConnectionFailed.
+		// Refer to the javadoc for ConnectionResult to see what error codes might be returned in
+		// onConnectionFailed.
 		Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + result.getErrorCode());
 	}
 
 	@Override
 	public void onConnectionSuspended(int cause) {
-	// The connection to Google Play services was lost for some reason. We call connect() to
-	// attempt to re-establish the connection.
+		// The connection to Google Play services was lost for some reason. We call connect() to
+		// attempt to re-establish the connection.
 		Log.i(TAG, "Connection suspended");
 		mGoogleApiClient.connect();
+	}
+
+
+	public void saveButtonClicked(View view) { save(); }
+	public void loadButtonClicked(View view) { load(); }
+
+	public void save()
+	{
+		String filename = "airpactData";
+		String outputString;
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(Globals.setting1); sb.append("\r\n");
+		sb.append(Globals.setting2); sb.append("\r\n");
+		sb.append(Globals.setting3); sb.append("\r\n");
+		sb.append(Globals.lastLatitude); sb.append("\r\n");
+		sb.append(Globals.lastLongitude); sb.append("\r\n");
+		outputString = sb.toString();
+
+		//Log.d("GlobalsSave", "String to write is: "+outputString);
+
+		try {
+			FileOutputStream outputStream = openFileOutput(filename, Context.MODE_PRIVATE);
+			outputStream.write(outputString.getBytes());
+			outputStream.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	public void load()
+	{
+		String filename = "airpactData";
+
+		try {
+			FileInputStream inputStream = openFileInput(filename);
+			BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+			StringBuilder total = new StringBuilder();
+			String line;
+			while ((line = r.readLine()) != null)
+			{
+				total.append(line);
+				total.append("\r\n");
+			}
+			r.close();
+			inputStream.close();
+			Globals.parseFile(total.toString());
+			//Log.d("LoadSave", "File contents: " + total);
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+			//Log.d("LoadSave", "File contents: NONE");
+		}
 	}
 }

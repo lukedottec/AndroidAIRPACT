@@ -8,6 +8,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,22 +35,25 @@ public class SiteList
 		sites = new ArrayList<>();
 	}
 
-	public void addToMap(GoogleMap m, ConnectivityManager connService)
+	public boolean addToMap(GoogleMap m, ConnectivityManager connService)
 	{
 		map = m;
-		checkSites("addToMap", connService);
+		if(!checkSites("addToMap", connService)) return false;
+		return true;
 	}
 
 	//Call with checkSites((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
-	public void checkSites(String type, ConnectivityManager connService)
+	public boolean checkSites(String type, ConnectivityManager connService)
 	{
 //		if(TimeDate.now-lastUpdated>(days)30)
 //		{
-		updateSites(type, connService);
+		if(!updateSites(type, connService))
+			return false;
 //		}
+		return true;
 	}
 
-	public void updateSites(String type, ConnectivityManager connService)
+	public boolean updateSites(String type, ConnectivityManager connService)
 	{
 
 		String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/monitors.aspx";
@@ -59,19 +63,34 @@ public class SiteList
 		{
 			if(type.equals("update")) new UpdateSitesTask().execute(stringURL);
 			else if(type.equals("addToMap")) new UpdateAddToMapTask().execute(stringURL);
-			else if(type.equals("setDropdown")) new UpdateSetDropdownTask().execute(stringURL);
+			else if(type.equals("setDropdown"))
+			{
+				try
+				{
+					new UpdateSetDropdownTask().execute(stringURL);
+				}
+				catch (StringIndexOutOfBoundsException e)
+				{
+					Log.d(DEBUG_TAG, "Error parsing sites...");
+					//DialogFragment dialog = new GoToLocationSettingsDialog();
+					//dialog.show(getFragmentManager(), "turnOnLocation");
+					return false;
+				}
+			}
 		}
 		else
 		{
 			Log.d(DEBUG_TAG, "Unable to fetch sites...");
 		}
+		return true;
 	}
 
-	public void setDropdown(Spinner s, MyActivity a, ConnectivityManager connService)
+	public boolean setDropdown(Spinner s, MyActivity a, ConnectivityManager connService)
 	{
 		spinner = s;
 		activity = a;
-		checkSites("setDropdown", connService);
+		if(!checkSites("setDropdown", connService)) return false;
+		return true;
 	}
 
 	public Site getClosest(double lat, double lon)
@@ -96,17 +115,35 @@ public class SiteList
 
 
 
-	private void parseSites(String data, int preceedingLines)
+	public void parseSites(String data, int preceedingLines)
 	{
 		//179 sites?
+		sites = new ArrayList<>();
 		int i=0;
-		int siteNum=0;
+		//int siteNum=0;
 
-		//Ignore first 11 lines, newlines are formatted /r/n
+		//Ignore first 11 lines, newlines are formatted \r\n
 		String firstLine = "";
-		for(int j=0; j<preceedingLines; j++) { while(data.charAt(i)!='\n') { firstLine=firstLine.concat("" + data.charAt(i++)); } i++; }
+		try
+		{
+			for (int j = 0; j < preceedingLines; j++)
+			{
+				while (data.charAt(i) != '\n')
+				{
+					firstLine = firstLine.concat("" + data.charAt(i++));
+				}
+				i++;
+			}
+		}
+		catch (StringIndexOutOfBoundsException e)
+		{
+			Log.d(DEBUG_TAG, "Parse first line failed...");
+			//DialogFragment dialog = new CannotConnectDialog();
+			//dialog.show(getFragmentManager(), "couldNotConnect");
+			return;
+		}
 
-		Log.d(DEBUG_TAG, "Starting site parsing");
+		//Log.d(DEBUG_TAG, "Starting site parsing");
 		try
 		{
 			while(i<data.length())
@@ -159,14 +196,14 @@ public class SiteList
 				try { longitude=Float.parseFloat(lon); } catch(NumberFormatException e) { longitude=0; }
 
 				sites.add(new Site(siteName, aqsid, latitude, longitude));
-				siteNum++;
-				Log.d(DEBUG_TAG, "Parsed site "+siteNum+": "+siteName);
+				//siteNum++;
+				//Log.d(DEBUG_TAG, "Parsed site "+siteNum+": "+siteName);
 			}
-			Log.d(DEBUG_TAG, "Done parsing sites...");
+			//Log.d(DEBUG_TAG, "Done parsing sites...");
 		}
 		catch(StringIndexOutOfBoundsException e)
 		{
-			Log.d(DEBUG_TAG, "Done parsing sites, index out of bounds at "+i);
+			//Log.d(DEBUG_TAG, "Done parsing sites, index out of bounds at "+i);
 		}
 	}
 
@@ -210,9 +247,14 @@ public class SiteList
 		@Override
 		protected void onPostExecute(String result)
 		{
+			Site closest = getClosest(Globals.lastLatitude, Globals.lastLongitude);
 			parseSites(result, 11);
 			for (int i = 0; i < sites.size(); i++)
-				sites.get(i).addSiteMarker(map);
+			{
+				Site s = sites.get(i);
+				if(s.Name.equals(closest.Name)) { s.addSiteMarker(map, BitmapDescriptorFactory.HUE_GREEN); }
+				else { s.addSiteMarker(map, BitmapDescriptorFactory.HUE_RED); }
+			}
 			map = null;
 		}
 	}
@@ -235,6 +277,7 @@ public class SiteList
 		@Override
 		protected void onPostExecute(String result)
 		{
+			Log.d(DEBUG_TAG, "The string to parse is: \"" + result + "\"");
 			parseSites(result, 11);
 			String[] items = new String[sites.size()];
 			for (int i = 0; i < sites.size(); i++)
@@ -242,6 +285,16 @@ public class SiteList
 			ArrayAdapter<String> adapter = new ArrayAdapter<>(activity, android.R.layout.simple_spinner_item, items);
 			spinner.setAdapter(adapter);
 			spinner.setOnItemSelectedListener(activity);
+
+			Site closest = Globals.siteList.getClosest(Globals.lastLatitude, Globals.lastLongitude);
+			int i=0;
+			for(int j=0; j<spinner.getCount(); j++)
+				if(spinner.getItemAtPosition(j).toString().equalsIgnoreCase(closest.Name))
+				{
+					i=j;
+					break;
+				}
+			spinner.setSelection(i);
 			spinner = null;
 		}
 	}
