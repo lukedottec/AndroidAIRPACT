@@ -1,0 +1,154 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin" tools:context=".MyActivity"
+    android:id="@+id/layoutMain">
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Open Map"
+        android:id="@+id/buttonOpenMap"
+        android:layout_marginBottom="171dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:onClick="openMap" />
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="News"
+        android:id="@+id/buttonNews"
+        android:layout_marginTop="46dp"
+        android:layout_alignTop="@+id/buttonOpenMap"
+        android:layout_centerHorizontal="true"
+        android:onClick="openNews"/>
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Help"
+        android:id="@+id/buttonHelp"
+        android:layout_below="@+id/buttonNews"
+        android:layout_centerHorizontal="true"
+        android:onClick="openHelp"/>
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Exit"
+        android:id="@+id/buttonExit"
+        android:layout_below="@+id/buttonHelp"
+        android:layout_centerHorizontal="true"
+        android:onClick="exitClicked"
+        android:nestedScrollingEnabled="false"/>
+
+    <FrameLayout
+        android:layout_width="fill_parent"
+        android:layout_height="250dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/layoutTop">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Advanced Info"
+            android:id="@+id/buttonAdvancedInfo"
+            android:layout_gravity="right|bottom"
+            android:layout_marginBottom="0dp"
+            android:layout_marginRight="10dp"
+            android:onClick="openAdvancedInfo"
+            android:nestedScrollingEnabled="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="AQI Index:"
+            android:id="@+id/textViewAQILabel"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginLeft="20dp"
+            android:layout_marginBottom="60dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="4"
+            android:id="@+id/textViewAQIValue"
+            android:layout_gravity="center|left"
+            android:layout_marginLeft="130dp"
+            android:layout_marginBottom="60dp"
+            android:textColor="#ff648000" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="PM2.5:"
+            android:id="@+id/textViewPM2.5Label"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="20dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Ozone:"
+            android:id="@+id/textViewOzoneLabel"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginLeft="20dp"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Site:"
+            android:id="@+id/textViewSiteLabel"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginTop="60dp"
+            android:layout_marginLeft="20dp" />
+
+        <Spinner
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner"
+            android:layout_gravity="center_horizontal|top"/>
+
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Load"
+            android:id="@+id/button"
+            android:layout_gravity="left|center_vertical"
+            android:onClick="loadButtonClicked"
+            android:visibility="invisible"/>
+
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:id="@+id/button2"
+            android:layout_gravity="left|bottom"
+            android:onClick="saveButtonClicked"
+            android:visibility="invisible"/>
+
+    </FrameLayout>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Refresh Location"
+        android:id="@+id/buttonGetCoords"
+        android:layout_above="@+id/buttonOpenMap"
+        android:layout_centerHorizontal="true"
+        android:onClick="getCoords"/>
+
+</RelativeLayout>
