@@ -11,10 +11,10 @@
     tools:context="wsu_airpact_project.airpact_demo.MapActivity"
     android:id="@+id/MAIN_RELATIVE_LAYOUT">
 
-    <fragment
+    <!--<fragment
               android:id="@+id/map"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:name="com.google.android.gms.maps.MapFragment"/>
+              android:name="com.google.android.gms.maps.MapFragment"/> -->
 
 </RelativeLayout>

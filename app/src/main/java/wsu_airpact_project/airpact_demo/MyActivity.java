@@ -199,6 +199,9 @@ public class MyActivity extends ActionBarActivity  implements
 			//closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 			if(closest!=null) setDropDownSelection(closest.Name);
 			//Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
+
+			Intent intent = new Intent(this, TabActivity.class);
+			startActivity(intent);
 		}
 		else
 		{

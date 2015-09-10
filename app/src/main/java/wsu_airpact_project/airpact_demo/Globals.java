@@ -13,6 +13,8 @@ public class Globals
 
 	public static boolean haveLocation = false;
 	public static MyActivity myActivity;
+	public static TabActivity tabActivity;
+	//public static TabActivity.TabFragment myFragment;
 
 	public static double lastLatitude = 0.0;
 	public static double lastLongitude = 0.0;

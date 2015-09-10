@@ -11,11 +11,19 @@ import android.view.ViewGroup;
 
 public class MapTabFragment extends TabActivity.TabFragment
 {
+	View rv;
+	boolean hasInflated=false;
+
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 							 Bundle savedInstanceState)
 	{
-		View rootView = inflater.inflate(R.layout.fragment_map_tab, container, false);
-		return rootView;
+		if(!hasInflated)
+		{
+			View rootView = inflater.inflate(R.layout.fragment_map_tab, container, false);
+			hasInflated=true;
+			rv = rootView;
+		}
+		return rv;
 	}
 }

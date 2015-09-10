@@ -10,7 +10,6 @@ import android.view.MenuItem;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
@@ -30,8 +29,8 @@ public class MapActivity extends Activity implements OnMapReadyCallback
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_map);
 
-		MapFragment mF = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
-		mF.getMapAsync(this);
+		//MapFragment mF = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
+		//mF.getMapAsync(this);
 
 		//Intent intent = getIntent();
 		//latitude = intent.getDoubleExtra(MyActivity.CUR_LAT, 0.0);

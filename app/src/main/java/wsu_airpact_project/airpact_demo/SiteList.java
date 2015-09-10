@@ -29,6 +29,7 @@ public class SiteList
 	private GoogleMap map;
 	private Spinner spinner;
 	private MyActivity activity;
+	private TabActivity tabActivity;
 
 	public SiteList()
 	{
@@ -89,6 +90,14 @@ public class SiteList
 	{
 		spinner = s;
 		activity = a;
+		if(!checkSites("setDropdown", connService)) return false;
+		return true;
+	}
+
+	public boolean setDropdown(Spinner s, TabActivity a, ConnectivityManager connService)
+	{
+		spinner = s;
+		tabActivity = a;
 		if(!checkSites("setDropdown", connService)) return false;
 		return true;
 	}
