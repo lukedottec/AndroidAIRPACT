@@ -75,6 +75,7 @@ public class MyActivity extends ActionBarActivity  implements
 		//String city = (String)parent.getItemAtPosition(pos);
 		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
 		Site currSite;
+		if(pos>Globals.siteList.sites.size()) return;			//Due to siteList not being thread-safe?
 		currSite = Globals.siteList.sites.get(pos);
 		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 	}
@@ -201,7 +202,7 @@ public class MyActivity extends ActionBarActivity  implements
 			//Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
 
 			Intent intent = new Intent(this, TabActivity.class);
-			startActivity(intent);
+			//startActivity(intent);
 		}
 		else
 		{

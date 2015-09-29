@@ -3,6 +3,8 @@ package wsu_airpact_project.airpact_demo;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
@@ -20,6 +22,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -37,24 +41,28 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.Locale;
 
 
 public class TabActivity extends ActionBarActivity implements ActionBar.TabListener, OnMapReadyCallback,
 		GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, AdapterView.OnItemSelectedListener
+		,TooFarDialog.TooFarDialogListener
 {
 	//Map tab
 	protected GoogleMap mainMap = null;
 	protected Double latitudeMap;
 	protected Double longitudeMap;
 	protected boolean mapFound = false;
+	protected boolean mainFound = false;
 
 
 	//Main tab
 	protected MainTabFragment mainTabFragment;
 	//private static final String DEBUG_TAG = "MainActivityTag";
-	protected static final String TAG = "basic-location-sample";
+	protected static final String TAG = "TabActivityTag";
 	//protected static String CUR_LAT="wsu_airpact_project.airpact_demo.CUR_LAT";
 	//protected static String CUR_LON="wsu_airpact_project.airpact_demo.CUR_LON";
 	protected GoogleApiClient mGoogleApiClient;
@@ -66,6 +74,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	public static TextView o3TextView;
 	public static TextView pm25TextView;
 	public static TextView siteTextView;
+	public static TextView farTextView;
+	public static Button farButton;
 
 	/**
 	 * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -135,6 +145,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		longitudeMap = Globals.lastLongitude;
 
 		//Main Tab
+		Globals.tabActivity = this;
 		/*
 		Globals.tabActivity = this;
 		latitude=0.0;
@@ -197,10 +208,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			mF.getMapAsync(this);
 			mapFound = true;
 		}//*/
-		if (i == 0)
+		if (i == 0 && !mainFound)
 		{
 			//Main tab
-			Globals.tabActivity = this;
+			//Globals.tabActivity = this;
 			latitude=0.0;
 			longitude=0.0;
 			o3TextView = (TextView) findViewById(R.id.textViewOzoneLabel);
@@ -209,15 +220,27 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
 			//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 			dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
+			if(dropDown==null) Log.d(TAG, "dropDown==null");
 			mainTabFragment = mSectionsPagerAdapter.mtf;
-			if(mainTabFragment!=null) dropDown = mainTabFragment.dropDown;
+			if(mainTabFragment!=null)
+			{
+				Log.d(TAG, "mainTabFragment!=null");
+				dropDown = mainTabFragment.dropDown;
+				if(dropDown==null) Log.d(TAG, "    dropDown==null");
+			}
+			else
+			{
+				Log.d(TAG, "mainTabFragment==null");
+			}
 			/*
 			if(!Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
 			{
 				DialogFragment dialog = new GoToLocationSettingsDialog();
 				dialog.show(getFragmentManager(), "turnOnLocation");
 			}//*/
+			Log.d(TAG, "buildingGoogleApiClient");
 			buildGoogleApiClient();
+			mainFound=true;
 		}
 	}
 
@@ -249,8 +272,27 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		{
 			// getItem is called to instantiate the fragment for the given page.
 			// Return a PlaceholderFragment (defined as a static inner class below).
+			Log.d(TAG, "in getItem("+position+")");
 			TabFragment tf = TabFragment.newInstance(position + 1);
 			if(position == 0) mtf = (MainTabFragment)tf;
+
+
+
+			dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
+			if(dropDown==null) Log.d(TAG, "!!!dropDown==null");
+			mainTabFragment = mSectionsPagerAdapter.mtf;
+			if(mainTabFragment!=null)
+			{
+				Log.d(TAG, "!!!mainTabFragment!=null");
+				dropDown = mainTabFragment.dropDown;
+				if(dropDown==null) Log.d(TAG, "asdf!!!dropDown==null");
+			}
+			else
+			{
+				Log.d(TAG, "!!!mainTabFragment==null");
+			}
+
+
 			return tf;
 		}
 
@@ -348,9 +390,12 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		LatLng currentLocation;
 		//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
 
+		latitudeMap = Globals.lastLatitude;
+		longitudeMap = Globals.lastLongitude;
 		if(latitudeMap==0.0&&longitudeMap==0)
 		{
 			currentLocation=pullmanDefault;
+			Log.d(TAG, "no location was detected for pin?");
 		}
 		else
 		{
@@ -375,21 +420,58 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	{
 		//String city = (String)parent.getItemAtPosition(pos);
 		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
+		Log.d(TAG, "onItemSelected()");
 		Site currSite;
-		currSite = Globals.siteList.sites.get(pos);
+		Log.d("onItemSelected()", "pos=" + pos+"   siteList.sites.size()="+Globals.siteList.sites.size());
+		if(pos>=Globals.siteList.sites.size()) { Log.d("onItemSelected()", "Returning early... pos="+pos+"   siteList.sites.size()="+Globals.siteList.sites.size()); return; }		//Temp fix until we can figure out why this is happening
+		Log.d("onItemSelected()", "pos.Name="+parent.getItemAtPosition(pos).toString());
+		currSite = Globals.siteList.getByName(parent.getItemAtPosition(pos).toString());
+		if(currSite==null)
+		{
+			Log.d("onItemSelected()", parent.getItemAtPosition(pos).toString()+" doesn't exist?");
+			return;
+		}
+		Log.d("onItemSelected()", "currSite.Name="+currSite.Name);
+		if(o3TextView==null) Log.d(TAG, "o3TextView==null");
 		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 	}
 	public void onNothingSelected(AdapterView<?> parent) {}
+	public void onItemSelectedTab(AdapterView<?> parent, View view, int pos, long id)
+	{
+		//String city = (String)parent.getItemAtPosition(pos);
+		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
+		Log.d(TAG, "onItemSelectedTab()");
+		Site currSite;
+		currSite = Globals.siteList.sites.get(pos);
+		if(o3TextView==null) Log.d(TAG, "o3TextView==null");
+		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+	}
 
 	public void setDropDownSelection(String city)
 	{
 		int i=0;
+		Log.d(TAG, "in setDropDownSelection, dropDown.getCount=="+dropDown.getCount());
 		for(int j=0; j<dropDown.getCount(); j++)
 			if(dropDown.getItemAtPosition(j).toString().equalsIgnoreCase(city))
 			{
 				i=j;
 				break;
 			}
+		dropDown.setSelection(i);
+	}
+
+	public void openFarInfo(View view)
+	{
+		DialogFragment dialog = new TooFarDialog();
+		dialog.show(getFragmentManager(), "tooFar");
+	}
+
+	public void onDialogUseSite(TooFarDialog dialog, String name)
+	{
+		int i;
+		for(i=0; i<dropDown.getCount(); i++)
+			if(dropDown.getItemAtPosition(i).toString().equalsIgnoreCase(name))
+				break;
 		dropDown.setSelection(i);
 	}
 
@@ -404,6 +486,52 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		finish();
 		System.exit(0);
 	}
+
+	public void setMainLabels(Site s)
+	{
+		o3TextView.setText("Ozone: "+s.OZONEavg_ap);
+		pm25TextView.setText("PM2.5: "+s.PM25avg_ap);
+		siteTextView.setText("Site: "+s.Name);
+		if(s.distance>40)		//40km = 25mi
+		{
+			farTextView.setVisibility(View.VISIBLE);
+			farButton.setVisibility(View.VISIBLE);
+		}
+		else
+		{
+			farTextView.setVisibility(View.INVISIBLE);
+			farButton.setVisibility(View.INVISIBLE);
+		}
+	}
+
+	public void findCitysLatLon(View view)
+	{
+		Log.d("Geocoder", "starting");
+		EditText et = (EditText)findViewById(R.id.editText);
+		Geocoder g = new Geocoder(this);
+		String s = et.getText().toString();
+		try
+		{
+			List<Address> l = g.getFromLocationName(s, 1);
+			Address a = l.get(0);
+			double lat = a.getLatitude();
+			double lon = a.getLongitude();
+			Log.d("Geocoder", lat + ","+lon);
+			//Toast.makeText(this, "Lat "+lat+"\nLon "+lon, Toast.LENGTH_LONG).show();
+			Site site = Globals.siteList.getClosest(lat, lon);
+			if(site!=null)
+			{
+				setDropDownSelection(site.Name);
+			}
+		}
+		catch (IOException e)
+		{
+			Log.d("Geocoder", "IOException");
+		}
+	}
+
+
+
 
 	protected synchronized void buildGoogleApiClient()
 	{
@@ -477,6 +605,58 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		mGoogleApiClient.connect();
 	}
 
+	public void dropDownIsReady()
+	{
+		Log.d(TAG, "@@@In dropDownIsReady()");
+		dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
+		if(dropDown==null) Log.d(TAG, "@@@dropDown==null");
+		mainTabFragment = mSectionsPagerAdapter.mtf;
+		if(mainTabFragment!=null)
+		{
+			Log.d(TAG, "@@@mainTabFragment!=null");
+			dropDown = mainTabFragment.dropDown;
+			if(dropDown==null) Log.d(TAG, "asdf@@@dropDown==null");
+		}
+		else
+		{
+			Log.d(TAG, "@@@mainTabFragment==null");
+		}
+		farTextView = mainTabFragment.farTextView;
+		farButton = mainTabFragment.farButton;
+		farTextView.setVisibility(View.INVISIBLE);
+		farButton.setVisibility(View.INVISIBLE);
+		if(dropDown!=null)
+		{
+			Log.d(TAG, "DROPDOWN HAS BEEN SET!!!!!!!!!!");
+
+			Log.d(TAG, "Listener HAS BEEN SET!!!!!!!!!!");
+
+			if(!Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
+			{
+				DialogFragment dialog = new GoToLocationSettingsDialog();
+				dialog.show(getFragmentManager(), "turnOnLocation");
+			}
+			Log.d(TAG, "DROPDOWN HAS BEEN POPULATED!!!!!!!!!!");
+			Site closest = Globals.siteList.getClosest(latitude, longitude);
+			if (closest != null)
+			{
+				if(closest.distance>0)
+					farTextView.setVisibility(View.VISIBLE);		//40km=25mi
+				Log.d(TAG, "Closest=="+closest.Name);
+				Log.d(TAG, "Closest.distance=="+closest.distance);
+				setDropDownSelection(closest.Name);
+			}
+			else
+			{
+				Log.d(TAG, "Closest==NULL");
+			}
+		}
+
+
+		o3TextView = mainTabFragment.o3TextView;
+		pm25TextView = mainTabFragment.pm25TextView;
+		siteTextView = mainTabFragment.siteTextView;
+	}
 
 	public void saveButtonClicked(View view) { save(); }
 	public void loadButtonClicked(View view) { load(); }

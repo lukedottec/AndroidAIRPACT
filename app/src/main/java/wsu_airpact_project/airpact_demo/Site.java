@@ -20,13 +20,14 @@ import java.util.Scanner;
 /**
  ** Created by Agent1729 on 4/8/2015.
  */
-public class Site
+public class Site implements Comparable<Site>
 {
 	public String SiteName;		//25
 	public String Name;			//25
 	public String AQSID;		//9
 	public double Latitude;		//8.4
 	public double Longitude;	//8.4
+	public double distance=1000;//
 	public float OZONEavg_ap;	//
 	public float OZONEavg_an;	//
 	public float PM25avg_ap;	//
@@ -37,7 +38,7 @@ public class Site
 	public String data;
 //	private String dateString;
 //	private String lastDateO3ap;
-	private static final String DEBUG_TAG = "DownloadingTag";
+	private static final String DEBUG_TAG = "SiteTag";
 //	private static final String DEBUG_TAG2 = "APReading";
 
 	private TextView TVO3;
@@ -62,13 +63,20 @@ public class Site
 		TVPM25=null;
 	}
 
+	@Override
+	public int compareTo(Site s2)
+	{
+		return (int)(this.distance-s2.distance);
+	}
+
 	public void getLatestData(ConnectivityManager connService, TextView tvO3, TextView tvpm25, TextView tvsite)
 	{
 		TVO3=tvO3;
 		TVPM25=tvpm25;
 		TVSite=tvsite;
 
-		String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/default.aspx?aqsid="+AQSID+"&format=csv";
+		//String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/default.aspx?aqsid="+AQSID+"&format=csv";
+		String stringURL="http://www.aeolus.wsu.edu:3838/mobile_data/tmp/"+AQSID+".csv";
 		NetworkInfo networkInfo = connService.getActiveNetworkInfo();
 		if(networkInfo != null && networkInfo.isConnected())
 		{
@@ -90,7 +98,14 @@ public class Site
 
 		//Ignore first line, newlines are formatted /r/n
 		String firstLine = "";
-		while(d.charAt(i)!='\n') { firstLine=firstLine.concat(""+d.charAt(i++)); }
+		try
+		{
+			while (d.charAt(i) != '\n')
+			{
+				firstLine = firstLine.concat("" + d.charAt(i++));
+			}
+		}
+		catch (StringIndexOutOfBoundsException e) { Log.d(DEBUG_TAG, "ERROR PARSING FIRST LINE!"); return; }
 		i++;
 
 		Log.d(DEBUG_TAG, "Parsing: "+Name);
@@ -103,15 +118,15 @@ public class Site
 				while(d.charAt(i)!=',') { dateLocal=dateLocal.concat(""+d.charAt(i++)); }
 				i++;
 
-				//AQSID
+				/*//AQSID
 				String aqsid = "";
 				while(d.charAt(i)!=',') { aqsid=aqsid.concat(""+d.charAt(i++)); }
-				i++;
+				i++;*/
 
-				//SiteName
+				/*//SiteName
 				String siteName = "";
 				while(d.charAt(i)!=',') { siteName=siteName.concat(""+d.charAt(i++)); }
-				i++;
+				i++;*/
 
 				//OZONEavg_ap
 				float o3_ap;
@@ -151,6 +166,10 @@ public class Site
 		catch(StringIndexOutOfBoundsException e)
 		{
 		}
+		OZONEavg_ap = Math.round(OZONEavg_ap*10)/10;
+		OZONEavg_an = Math.round(OZONEavg_an*10)/10;
+		PM25avg_ap = Math.round(PM25avg_ap*10)/10;
+		PM25avg_an = Math.round(PM25avg_an*10)/10;
 	}
 
 	public void addSiteMarker(GoogleMap map, float clr)
@@ -174,8 +193,18 @@ public class Site
 		return radius*c;	//Distance in km
 	}
 
+	public void setDistance(double lat, double lon)
+	{
+		distance = getDistanceToLL(lat, lon);
+	}
+
 	public static double degToRad(double deg) { return deg*(Math.PI/180.0); }
 
+	public void setMainLabels()
+	{
+		setDistance(Globals.lastLatitude, Globals.lastLongitude);
+		Globals.tabActivity.setMainLabels(this);
+	}
 
 
 
@@ -200,10 +229,13 @@ public class Site
 		{
 			data = result;
 			parseData(data);
-			if(TVO3!=null) { TVO3.setText("Ozone: "+OZONEavg_ap); TVO3=null; }
-			if(TVPM25!=null) { TVPM25.setText("PM2.5: "+PM25avg_ap); TVPM25=null; }
-			if(TVSite!=null) { TVSite.setText("Site: "+Name); TVSite=null; }
-			Log.d(DEBUG_TAG, "Set labels for site "+Name);
+			Log.d(DEBUG_TAG, "Trying to set labels...");
+			//if(TVO3!=null) { Log.d(DEBUG_TAG, "Set labels..."+TVO3.getText()); TVO3.setText("Ozone: "+OZONEavg_ap); TVO3=null; }
+			//if(TVPM25!=null) { TVPM25.setText("PM2.5: "+PM25avg_ap); TVPM25=null; }
+			//if(TVSite!=null) { TVSite.setText("Site: "+Name); TVSite=null; }
+			//Globals.tabActivity.setMainLabels(OZONEavg_ap, PM25avg_ap, Name, View.INVISIBLE);
+			setMainLabels();
+			//Log.d(DEBUG_TAG, "Set labels for site "+Name);
 		}
 	}
 

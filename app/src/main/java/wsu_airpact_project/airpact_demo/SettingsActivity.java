@@ -44,7 +44,7 @@ public class SettingsActivity extends ActionBarActivity {
 		Globals.setting2 = s2.isChecked();
 		Globals.setting3 = s3.isChecked();
 
-		Globals.myActivity.save();
+		Globals.tabActivity.save();
 	}
 
 

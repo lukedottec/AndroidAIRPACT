@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Scanner;
 
 /**
@@ -34,6 +35,14 @@ public class SiteList
 	public SiteList()
 	{
 		sites = new ArrayList<>();
+	}
+
+	public void addSite(String siteName, String aqsid, float latitude, float longitude)
+	{
+		Site s = getByName(siteName);
+		if(s==null)
+			sites.add(new Site(siteName, aqsid, latitude, longitude));
+		return;
 	}
 
 	public boolean addToMap(GoogleMap m, ConnectivityManager connService)
@@ -57,7 +66,8 @@ public class SiteList
 	public boolean updateSites(String type, ConnectivityManager connService)
 	{
 
-		String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/monitors.aspx";
+		//String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/monitors.aspx";
+		String stringURL="http://lar.wsu.edu/R_apps/2015ap4/data/mon2015.csv";
 		//ConnectivityManager connService = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = connService.getActiveNetworkInfo();
 		if(networkInfo != null && networkInfo.isConnected())
@@ -102,22 +112,54 @@ public class SiteList
 		return true;
 	}
 
+	public Site getByName(String n)
+	{
+		for(int i=0; i<sites.size(); i++)
+			if(sites.get(i).Name.equalsIgnoreCase(n))
+				return sites.get(i);
+		return null;
+	}
+
 	public Site getClosest(double lat, double lon)
 	{
 		Site closest = null;
 		double closestDist = 99999;
 		double dist;
 
-		for(int i=0; i<sites.size(); i++)
+		setDistances(lat, lon);
+		/*for(int i=0; i<sites.size(); i++)
 		{
-			if((dist=sites.get(i).getDistanceToLL(lat, lon))<closestDist)
+			*//*if((dist=sites.get(i).getDistanceToLL(lat, lon))<closestDist)
+			{
+				closest=sites.get(i);
+				closestDist=dist;
+			}
+			sites.get(i).distance=dist;*//*
+			if((dist=sites.get(i).distance)<closestDist)
 			{
 				closest=sites.get(i);
 				closestDist=dist;
 			}
 		}
+		return closest;*/
+		for(int i=0; i<sites.size(); i++)
+		{
+			//Log.d("getClosest", "Site "+i+": "+sites.get(i).Name);
+		}
+		if(sites.size()>0)
+		{
+			Site s = this.sites.get(0);
+			Log.d("getClosest", "GetClosest returning: "+s.Name);
+			return s;
+		}
+		return null;
+	}
 
-		return closest;
+	public void setDistances(double lat, double lon)
+	{
+		for(int i=0; i<sites.size(); i++)
+			sites.get(i).distance = sites.get(i).getDistanceToLL(lat, lon);
+		Collections.sort(this.sites);
 	}
 
 
@@ -127,9 +169,9 @@ public class SiteList
 	public void parseSites(String data, int preceedingLines)
 	{
 		//179 sites?
-		sites = new ArrayList<>();
+		//sites = new ArrayList<>();
 		int i=0;
-		//int siteNum=0;
+		int siteNum=0;
 
 		//Ignore first 11 lines, newlines are formatted \r\n
 		String firstLine = "";
@@ -152,67 +194,73 @@ public class SiteList
 			return;
 		}
 
-		//Log.d(DEBUG_TAG, "Starting site parsing");
+		Log.d(DEBUG_TAG, "Starting site parsing");
 		try
 		{
+			Log.d(DEBUG_TAG, "Starting site parsing2");
 			while(i<data.length())
 			{
-				if(data.charAt(i)=='\r'||data.charAt(i)=='\n') break;
+				Log.d(DEBUG_TAG, "Starting site parsing at i="+i+", data.length()="+data.length());
+				if(data.charAt(i)=='\r'||data.charAt(i)=='\n') { Log.d(DEBUG_TAG, "BREAKING"); break; }
 
 				//AQSID
 				String aqsid = "";
 				while(data.charAt(i)!=',') { aqsid=aqsid.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i++;	//", "
 
 				//SiteName
 				String siteName = "";
 				while(data.charAt(i)!=',') { siteName=siteName.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i++;	//", "
 
-				//State
+				/*//State
 				String state = "";
 				while(data.charAt(i)!=',') { state=state.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i+=2;	//", "*/
 
-				//Region
+				/*//Region
 				String region = "";
 				while(data.charAt(i)!=',') { region=region.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i+=2;	//", "*/
 
 				//Latitude
 				float latitude;
 				String lat = "";
 				while(data.charAt(i)!=',') { lat=lat.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i++;	//", "
 
 				//Longitude
 				float longitude;
 				String lon = "";
 				while(data.charAt(i)!=',') { lon=lon.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i++;	//", "
 
 				//GMToff
 				String gmtoff = "";
 				while(data.charAt(i)!=',') { gmtoff=gmtoff.concat(""+data.charAt(i++)); }
-				i+=2;	//", "
+				i++;	//", "
 
-				//GMToffset
+				/*//GMToffset
 				String gmtoffset = "";
 				while(data.charAt(i)!='<') { gmtoffset=gmtoffset.concat(""+data.charAt(i++)); }
-				while(data.charAt(i)!='>') {  i++; } i++;
+				while(data.charAt(i)!='>') {  i++; } i++;*/
+				String gmtoffset = "";
+				while(data.charAt(i)!='\n'&&data.charAt(i)!='\r') { gmtoffset=gmtoffset.concat(""+data.charAt(i++)); }
 
 				try { latitude=Float.parseFloat(lat); } catch(NumberFormatException e) { latitude=0; }
 				try { longitude=Float.parseFloat(lon); } catch(NumberFormatException e) { longitude=0; }
 
-				sites.add(new Site(siteName, aqsid, latitude, longitude));
-				//siteNum++;
-				//Log.d(DEBUG_TAG, "Parsed site "+siteNum+": "+siteName);
+				addSite(siteName, aqsid, latitude, longitude);
+
+				siteNum++;
+				Log.d(DEBUG_TAG, "Parsed site "+siteNum+": "+siteName);
+				while(data.charAt(i)=='\n'||data.charAt(i)=='\r') i++;
 			}
-			//Log.d(DEBUG_TAG, "Done parsing sites...");
+			Log.d(DEBUG_TAG, "Done parsing sites...");
 		}
 		catch(StringIndexOutOfBoundsException e)
 		{
-			//Log.d(DEBUG_TAG, "Done parsing sites, index out of bounds at "+i);
+			Log.d(DEBUG_TAG, "Done parsing sites, index out of bounds at "+i);
 		}
 	}
 
@@ -287,13 +335,17 @@ public class SiteList
 		protected void onPostExecute(String result)
 		{
 			Log.d(DEBUG_TAG, "The string to parse is: \"" + result + "\"");
-			parseSites(result, 11);
+			Log.d(DEBUG_TAG, "The string length is: "+result.length());
+			parseSites(result, 1);
+			Log.d(DEBUG_TAG, "The number of sites is: "+sites.size());
 			String[] items = new String[sites.size()];
 			for (int i = 0; i < sites.size(); i++)
 				items[i]=sites.get(i).Name;
-			ArrayAdapter<String> adapter = new ArrayAdapter<>(activity, android.R.layout.simple_spinner_item, items);
+			//Log.d(DEBUG_TAG, "Attempting arrayadapter thingy");
+			//if(tabActivity == null) Log.d(DEBUG_TAG, "tabActivity null");
+			ArrayAdapter<String> adapter = new ArrayAdapter<>(tabActivity, android.R.layout.simple_spinner_item, items);
 			spinner.setAdapter(adapter);
-			spinner.setOnItemSelectedListener(activity);
+			spinner.setOnItemSelectedListener(tabActivity);
 
 			Site closest = Globals.siteList.getClosest(Globals.lastLatitude, Globals.lastLongitude);
 			int i=0;

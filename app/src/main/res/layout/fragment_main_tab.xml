@@ -25,17 +25,6 @@
         android:layout_alignParentStart="true"
         android:id="@+id/layoutTop">
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Advanced Info"
-            android:id="@+id/buttonAdvancedInfo"
-            android:layout_gravity="right|bottom"
-            android:layout_marginBottom="0dp"
-            android:layout_marginRight="10dp"
-            android:onClick="openAdvancedInfo"
-            android:nestedScrollingEnabled="true"/>
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -62,7 +51,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="PM2.5:"
-            android:id="@+id/textViewPM2.5Label"
+            android:id="@+id/textViewPM2.5LabelInTab"
             android:layout_gravity="left|center_vertical"
             android:layout_marginLeft="20dp"
             android:layout_marginTop="20dp"/>
@@ -72,7 +61,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Ozone:"
-            android:id="@+id/textViewOzoneLabel"
+            android:id="@+id/textViewOzoneLabelInTab"
             android:layout_gravity="left|center_vertical"
             android:layout_marginLeft="20dp"
             android:layout_marginBottom="20dp"/>
@@ -82,10 +71,23 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="Site:"
-            android:id="@+id/textViewSiteLabel"
+            android:id="@+id/textViewSiteLabelInTab"
             android:layout_gravity="left|center_vertical"
             android:layout_marginTop="60dp"
             android:layout_marginLeft="20dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Data from this AIRNOW site may be inaccurate for your location."
+            android:id="@+id/textViewFarInTab"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginTop="100dp"
+            android:layout_marginLeft="20dp"
+            android:textSize="14dp"
+            android:textStyle="italic"
+            android:visibility="visible"/>
 
         <Spinner
             android:layout_width="wrap_content"
@@ -123,5 +125,48 @@
         android:layout_centerHorizontal="true"
         android:onClick="getCoords"
         android:layout_marginTop="300dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Advanced Info"
+        android:id="@+id/buttonAdvancedInfo"
+        android:layout_gravity="right|bottom"
+        android:onClick="openAdvancedInfo"
+        android:nestedScrollingEnabled="true"
+        android:layout_below="@+id/layoutTop"
+        android:layout_alignRight="@+id/layoutTop"
+        android:layout_alignEnd="@+id/layoutTop"/>
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableLeft="@mipmap/ic_information"
+        android:id="@+id/buttonTooFarInfo"
+        android:layout_toStartOf="@+id/buttonAdvancedInfo"
+        android:layout_alignTop="@+id/buttonAdvancedInfo"
+        android:onClick="openFarInfo"/>
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/editText"
+        android:layout_alignBottom="@+id/buttonTooFarInfo"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:text="Moscow, ID"
+        />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Get LatLong"
+        android:id="@+id/button3"
+        android:layout_alignBottom="@+id/buttonTooFarInfo"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:onClick="findCitysLatLon"/>
 
 </RelativeLayout>
