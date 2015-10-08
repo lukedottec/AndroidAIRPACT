@@ -90,7 +90,7 @@
             android:visibility="visible"/>
 
         <Spinner
-            android:layout_width="wrap_content"
+            android:layout_width="256dp"
             android:layout_height="wrap_content"
             android:id="@+id/spinnerinmaintab"
             android:layout_gravity="center_horizontal|top"/>
@@ -115,7 +115,25 @@
             android:onClick="saveButtonClicked"
             android:visibility="invisible"/>
 
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Map"
+            android:id="@+id/buttonGoToMap"
+            android:layout_gravity="right|center_vertical"
+            android:onClick="goToMap"/>
+
     </FrameLayout>
+
+    <Button
+        android:layout_width="70dp"
+        android:layout_height="62dp"
+        android:id="@+id/buttonSearch"
+        android:drawableLeft="@mipmap/ic_search"
+        android:layout_marginTop="320dp"
+        android:layout_gravity="end"
+        android:onClick="findCitysLatLon"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -157,16 +175,5 @@
         android:layout_alignParentStart="true"
         android:text="Moscow, ID"
         />
-
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Get LatLong"
-        android:id="@+id/button3"
-        android:layout_alignBottom="@+id/buttonTooFarInfo"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:onClick="findCitysLatLon"/>
 
 </RelativeLayout>

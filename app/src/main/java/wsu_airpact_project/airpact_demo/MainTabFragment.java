@@ -5,16 +5,15 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 /**
- * Created by Agent1729 on 9/7/2015.
+ *  Created by Agent1729 on 9/7/2015.
  */
 
-public class MainTabFragment extends TabActivity.TabFragment implements AdapterView.OnItemSelectedListener
+public class MainTabFragment extends TabActivity.TabFragment //implements AdapterView.OnItemSelectedListener
 {
 	View rv;
 	boolean hasInflated=false;
@@ -29,6 +28,9 @@ public class MainTabFragment extends TabActivity.TabFragment implements AdapterV
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 							 Bundle savedInstanceState)
 	{
+		if(Globals.tabActivity.miw==null)
+			Globals.tabActivity.miw = new MapInfoWindow(inflater);
+
 		if(!hasInflated)
 		{
 			View rootView = inflater.inflate(R.layout.fragment_main_tab, container, false);
@@ -42,28 +44,9 @@ public class MainTabFragment extends TabActivity.TabFragment implements AdapterV
 			Log.d("MainTabFragmentTag","dropDown set in MainTabFragment");
 			if(dropDown==null) Log.d("MainTabFragmentTag","dropDown==null");
 			Globals.tabActivity.dropDownIsReady();
-			dropDown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-				@Override
-				public void onItemSelected(AdapterView<?> arg0, View arg1, int arg2, long arg3)
-				{
-					Log.d("MainTabFragmentTag", "HOLY SHIT");
-				}
-				@Override
-				public void onNothingSelected(AdapterView<?> arg0)
-				{
-					Log.d("MainTabFragmentTag", "HOLY SHIT2");
-				}
-			});
 			hasInflated=true;
 			rv = rootView;
 		}
 		return rv;
 	}
-
-	public void onItemSelected(AdapterView<?> parent, View view, int pos, long id)
-	{
-		Log.d("MainTabFragmentTag","In onItemSelected");
-		Globals.tabActivity.onItemSelectedTab(parent, view, pos, id);
-	}
-	public void onNothingSelected(AdapterView<?> parent) {}
 }

@@ -6,7 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /**
- * Created by Agent1729 on 9/7/2015.
+ *  Created by Agent1729 on 9/7/2015 .
  */
 
 public class MapTabFragment extends TabActivity.TabFragment

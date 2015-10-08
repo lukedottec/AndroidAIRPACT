@@ -4,11 +4,9 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,8 +27,8 @@ public class SiteList
 
 	private GoogleMap map;
 	private Spinner spinner;
-	private MyActivity activity;
-	private TabActivity tabActivity;
+	//private MyActivity activity;
+	//private TabActivity tabActivity;
 
 	public SiteList()
 	{
@@ -42,7 +40,6 @@ public class SiteList
 		Site s = getByName(siteName);
 		if(s==null)
 			sites.add(new Site(siteName, aqsid, latitude, longitude));
-		return;
 	}
 
 	public boolean addToMap(GoogleMap m, ConnectivityManager connService)
@@ -73,7 +70,20 @@ public class SiteList
 		if(networkInfo != null && networkInfo.isConnected())
 		{
 			if(type.equals("update")) new UpdateSitesTask().execute(stringURL);
-			else if(type.equals("addToMap")) new UpdateAddToMapTask().execute(stringURL);
+			else if(type.equals("addToMap"))
+			{
+				try
+				{
+					new UpdateAddToMapTask().execute(stringURL);
+				}
+				catch (StringIndexOutOfBoundsException e)
+				{
+					Log.d(DEBUG_TAG, "Error parsing sites for addToMap...");
+					//DialogFragment dialog = new GoToLocationSettingsDialog();
+					//dialog.show(getFragmentManager(), "turnOnLocation");
+					return false;
+				}
+			}
 			else if(type.equals("setDropdown"))
 			{
 				try
@@ -82,7 +92,7 @@ public class SiteList
 				}
 				catch (StringIndexOutOfBoundsException e)
 				{
-					Log.d(DEBUG_TAG, "Error parsing sites...");
+					Log.d(DEBUG_TAG, "Error parsing sites for setDropdown...");
 					//DialogFragment dialog = new GoToLocationSettingsDialog();
 					//dialog.show(getFragmentManager(), "turnOnLocation");
 					return false;
@@ -92,22 +102,23 @@ public class SiteList
 		else
 		{
 			Log.d(DEBUG_TAG, "Unable to fetch sites...");
+			return false;
 		}
 		return true;
 	}
 
-	public boolean setDropdown(Spinner s, MyActivity a, ConnectivityManager connService)
+	/*public boolean setDropdown(Spinner s, MyActivity a, ConnectivityManager connService)
 	{
 		spinner = s;
 		activity = a;
 		if(!checkSites("setDropdown", connService)) return false;
 		return true;
-	}
+	}*/
 
-	public boolean setDropdown(Spinner s, TabActivity a, ConnectivityManager connService)
+	public boolean setDropdown(Spinner s, ConnectivityManager connService)
 	{
 		spinner = s;
-		tabActivity = a;
+		//tabActivity = a;
 		if(!checkSites("setDropdown", connService)) return false;
 		return true;
 	}
@@ -122,12 +133,11 @@ public class SiteList
 
 	public Site getClosest(double lat, double lon)
 	{
+		/*
 		Site closest = null;
 		double closestDist = 99999;
 		double dist;
-
-		setDistances(lat, lon);
-		/*for(int i=0; i<sites.size(); i++)
+		for(int i=0; i<sites.size(); i++)
 		{
 			*//*if((dist=sites.get(i).getDistanceToLL(lat, lon))<closestDist)
 			{
@@ -142,10 +152,12 @@ public class SiteList
 			}
 		}
 		return closest;*/
-		for(int i=0; i<sites.size(); i++)
+
+		setDistances(lat, lon);
+		/*for(int i=0; i<sites.size(); i++)
 		{
-			//Log.d("getClosest", "Site "+i+": "+sites.get(i).Name);
-		}
+			Log.d("getClosest", "Site "+i+": "+sites.get(i).Name);
+		}*/
 		if(sites.size()>0)
 		{
 			Site s = this.sites.get(0);
@@ -304,14 +316,16 @@ public class SiteList
 		@Override
 		protected void onPostExecute(String result)
 		{
-			Site closest = getClosest(Globals.lastLatitude, Globals.lastLongitude);
+			//Site closest = getClosest(Globals.lastLatitude, Globals.lastLongitude);
+			setDistances(Globals.lastLatitude, Globals.lastLongitude);
 			parseSites(result, 11);
-			for (int i = 0; i < sites.size(); i++)
+			Globals.tabActivity.addSitesToMap(map);
+			/*for (int i = 0; i < sites.size(); i++)
 			{
 				Site s = sites.get(i);
 				if(s.Name.equals(closest.Name)) { s.addSiteMarker(map, BitmapDescriptorFactory.HUE_GREEN); }
 				else { s.addSiteMarker(map, BitmapDescriptorFactory.HUE_RED); }
-			}
+			}*/
 			map = null;
 		}
 	}
@@ -338,11 +352,13 @@ public class SiteList
 			Log.d(DEBUG_TAG, "The string length is: "+result.length());
 			parseSites(result, 1);
 			Log.d(DEBUG_TAG, "The number of sites is: "+sites.size());
-			String[] items = new String[sites.size()];
-			for (int i = 0; i < sites.size(); i++)
-				items[i]=sites.get(i).Name;
 			//Log.d(DEBUG_TAG, "Attempting arrayadapter thingy");
 			//if(tabActivity == null) Log.d(DEBUG_TAG, "tabActivity null");
+
+			Globals.tabActivity.populateDropdown(spinner);
+			/*String[] items = new String[sites.size()];
+			for (int i = 0; i < sites.size(); i++)
+				items[i]=sites.get(i).Name;
 			ArrayAdapter<String> adapter = new ArrayAdapter<>(tabActivity, android.R.layout.simple_spinner_item, items);
 			spinner.setAdapter(adapter);
 			spinner.setOnItemSelectedListener(tabActivity);
@@ -355,7 +371,7 @@ public class SiteList
 					i=j;
 					break;
 				}
-			spinner.setSelection(i);
+			spinner.setSelection(i);*/
 			spinner = null;
 		}
 	}

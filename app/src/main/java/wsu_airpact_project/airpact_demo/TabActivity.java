@@ -3,10 +3,13 @@ package wsu_airpact_project.airpact_demo;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.net.ConnectivityManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -22,10 +25,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -35,28 +40,42 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
 
 public class TabActivity extends ActionBarActivity implements ActionBar.TabListener, OnMapReadyCallback,
 		GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, AdapterView.OnItemSelectedListener
-		,TooFarDialog.TooFarDialogListener
+		,TooFarDialog.TooFarDialogListener, GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener
 {
 	//Map tab
 	protected GoogleMap mainMap = null;
+	private static int zoomLevel = 10;
 	protected Double latitudeMap;
 	protected Double longitudeMap;
 	protected boolean mapFound = false;
 	protected boolean mainFound = false;
+
+	protected MapInfoWindow miw = null;
+	protected GroundOverlayOptions goo = null;
+	protected GroundOverlay overlay = null;
+	//protected ProgressDialog pDialog;
+	protected Bitmap bitmap;
 
 
 	//Main tab
@@ -71,6 +90,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected Double longitude;
 	protected Spinner dropDown;
 
+	public Site currentSite;
 	public static TextView o3TextView;
 	public static TextView pm25TextView;
 	public static TextView siteTextView;
@@ -164,6 +184,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		buildGoogleApiClient();
 		//*/
 	}
+
+
 
 
 	@Override
@@ -272,25 +294,26 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		{
 			// getItem is called to instantiate the fragment for the given page.
 			// Return a PlaceholderFragment (defined as a static inner class below).
-			Log.d(TAG, "in getItem("+position+")");
+
+			//Log.d(TAG, "in getItem("+position+")");
 			TabFragment tf = TabFragment.newInstance(position + 1);
 			if(position == 0) mtf = (MainTabFragment)tf;
 
 
 
 			dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
-			if(dropDown==null) Log.d(TAG, "!!!dropDown==null");
+			//if(dropDown==null) Log.d(TAG, "!!!dropDown==null");
 			mainTabFragment = mSectionsPagerAdapter.mtf;
 			if(mainTabFragment!=null)
 			{
-				Log.d(TAG, "!!!mainTabFragment!=null");
+				//Log.d(TAG, "!!!mainTabFragment!=null");
 				dropDown = mainTabFragment.dropDown;
-				if(dropDown==null) Log.d(TAG, "asdf!!!dropDown==null");
+				//if(dropDown==null) Log.d(TAG, "asdf!!!dropDown==null");
 			}
-			else
+			/*else
 			{
 				Log.d(TAG, "!!!mainTabFragment==null");
-			}
+			}*/
 
 
 			return tf;
@@ -374,8 +397,9 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		public View onCreateView(LayoutInflater inflater, ViewGroup container,
 								 Bundle savedInstanceState)
 		{
-			View rootView = inflater.inflate(R.layout.fragment_tab, container, false);
-			return rootView;
+			//View rootView = inflater.inflate(R.layout.fragment_tab, container, false);
+			//return rootView;
+			return inflater.inflate(R.layout.fragment_tab, container, false);
 		}
 	}
 
@@ -385,6 +409,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	@Override
 	public void onMapReady(GoogleMap map)
 	{
+		Log.d("MapTag", "Starting onMapReady");
+		map.setInfoWindowAdapter(miw);
+		map.setOnInfoWindowClickListener(this);
+		map.setOnMarkerClickListener(this);
 		mainMap=map;
 		LatLng pullmanDefault = new LatLng(46.7338, -117.1673);
 		LatLng currentLocation;
@@ -394,25 +422,182 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		longitudeMap = Globals.lastLongitude;
 		if(latitudeMap==0.0&&longitudeMap==0)
 		{
+			Log.d("MapTag", "LL==0");
 			currentLocation=pullmanDefault;
 			Log.d(TAG, "no location was detected for pin?");
 		}
 		else
 		{
+			Log.d("MapTag", "LL!=0");
 			currentLocation = new LatLng(latitudeMap, longitudeMap);
 			map.addMarker(new MarkerOptions().title("Current Location").snippet("You are here").position(currentLocation).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
 		}
 
 		map.setMyLocationEnabled(true);
-		map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 16));
+		map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, zoomLevel));
 
 		if(!Globals.siteList.addToMap(map, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
 		{
-			DialogFragment dialog = new GoToLocationSettingsDialog();
-			dialog.show(getFragmentManager(), "turnOnLocation");
+			Log.d("MapTag", "!siteList.addToMap");
+			//DialogFragment dialog = new GoToLocationSettingsDialog();
+			//dialog.show(getFragmentManager(), "turnOnLocation");
+			addSitesToMap(map);
+			DialogFragment dialog2 = new CannotConnectDialog();
+			dialog2.show(getFragmentManager(), "couldNotConnect");
 		}
 	}
 
+	public void addSitesToMap(GoogleMap map)
+	{
+		Log.d("MapTag", "Starting addSitesToMap()");
+		Site siteUsing;
+		if(currentSite!=null) { siteUsing = currentSite; }
+		else { siteUsing = Globals.siteList.getClosest(latitude, longitude); }
+		//siteUsing = Globals.siteList.getClosest(latitude, longitude);
+		for (int i = 0; i < Globals.siteList.sites.size(); i++)
+		{
+			Site s = Globals.siteList.sites.get(i);
+			float clr;
+			if(s.Name.equals(siteUsing.Name))
+				clr = BitmapDescriptorFactory.HUE_GREEN;
+			else clr = BitmapDescriptorFactory.HUE_RED;
+			s.addSiteMarker(map, clr);
+			Log.d("MapTag", "   added site "+s.Name);
+		}
+
+
+		LatLngBounds bounds = new LatLngBounds(
+				new LatLng(39.79, -125.87),
+				new LatLng(49.74, -111.35));
+		goo = new GroundOverlayOptions()
+				.image(BitmapDescriptorFactory.fromResource(R.mipmap.ic_information))
+				.transparency(.5f)
+				.positionFromBounds(bounds);
+
+		//overlay = map.addGroundOverlay(goo);
+		Log.d("ImageStuff", "Calling setImageOverlay(null)");
+		setImageOverlay(null);
+		Log.d("ImageStuff", "Calling LoadImage().execute");
+		Calendar c = Calendar.getInstance();
+		String url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
+				c.get(Calendar.YEAR)+"/"+c.get(Calendar.YEAR)+"_"+addZero(c.get(Calendar.MONTH)+1)+"_"+addZero(c.get(Calendar.DAY_OF_MONTH))+
+				"/airpact4_08hrO3_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
+		Log.d("ImageStuff", "     with \""+url+"\"");
+		//new LoadImage().execute("http://www.lar.wsu.edu/airpact/gmap/images/anim/species/2015/2015_10_02/airpact4_08hrO3_2015100215.gif");
+		new LoadImage().execute(url);
+	}
+
+	public String addZero(int i)
+	{
+		if(i>=10)
+			return ""+i;
+		return "0"+i;
+	}
+
+	public void setImageOverlay(Bitmap b)
+	{
+		Log.d("ImageStuff", "Setting Image overlay");
+		if(goo!=null)
+		{
+			if(b!=null)
+			{
+				if(overlay!=null)
+					overlay.remove();
+				goo.image(BitmapDescriptorFactory.fromBitmap(b));
+				overlay = mainMap.addGroundOverlay(goo);
+				//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
+			}
+			else
+			{
+				Log.d("ImageStuff", "b==null");
+			}
+		}
+		else
+		{
+			Log.d("ImageStuff", "goo==null");
+		}
+		//overlay.setImage();
+	}
+
+	private class LoadImage extends AsyncTask<String, String, Bitmap>
+	{
+
+		@Override
+		protected void onPreExecute()
+		{
+			super.onPreExecute();
+			//pDialog = new ProgressDialog(TabActivity.this);
+			//pDialog.setMessage("Loading image...");
+			//pDialog.show();
+		}
+		protected Bitmap doInBackground(String... args)
+		{
+			try
+			{
+				bitmap = BitmapFactory.decodeStream((InputStream)new URL(args[0]).getContent());
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();
+			}
+			return bitmap;
+		}
+		protected void onPostExecute(Bitmap image)
+		{
+			if(image!=null)
+			{
+				Globals.tabActivity.setImageOverlay(image);
+				Log.d("ImageStuff", "LoadImage: image!=null");
+				//pDialog.dismiss();
+			}
+			else
+			{
+				//pDialog.dismiss();
+				Log.d("ImageStuff", "LoadImage: image==null");
+				Toast.makeText(TabActivity.this, "Overlay image not found", Toast.LENGTH_LONG).show();
+			}
+		}
+	}
+
+	public void onInfoWindowClick(Marker m)
+	{
+		Site s = Globals.siteList.getByName(m.getTitle());
+		if(s==null) return;
+		setDropDownSelection(s.Name);
+		mViewPager.setCurrentItem(0);
+	}
+
+	public boolean onMarkerClick(Marker m)
+	{
+		Site s = Globals.siteList.getByName(m.getTitle());
+		if(s==null) return false;
+		if(s.hasValues()) return false;
+		Log.d("Map", "Marker was clicked with name "+s.Name);
+		s.updatePin((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+		return false;
+	}
+
+	public void updateMarker(Site s)
+	{
+		if(s==null)
+		{
+			Log.d("TabActivityTag", "UpdateMarker(null)?");
+			return;
+		}
+
+		Site siteUsing;
+		if(currentSite!=null) { siteUsing = currentSite; }
+		else { siteUsing = Globals.siteList.getClosest(latitude, longitude); }
+
+		float clr;
+		if(s.Name.equals(siteUsing.Name))
+			clr = BitmapDescriptorFactory.HUE_GREEN;
+		else clr = BitmapDescriptorFactory.HUE_RED;
+
+		Marker m = s.addSiteMarker(mainMap, clr);
+		m.showInfoWindow();
+		Log.d("TabActivityTag", "Updated site marker for "+s.Name);
+	}
 
 
 	//Main Tab
@@ -420,6 +605,11 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	{
 		//String city = (String)parent.getItemAtPosition(pos);
 		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
+		if(mainMap!=null)
+		{
+			currentSite.addSiteMarker(mainMap, BitmapDescriptorFactory.HUE_RED);
+		}
+
 		Log.d(TAG, "onItemSelected()");
 		Site currSite;
 		Log.d("onItemSelected()", "pos=" + pos+"   siteList.sites.size()="+Globals.siteList.sites.size());
@@ -432,19 +622,34 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			return;
 		}
 		Log.d("onItemSelected()", "currSite.Name="+currSite.Name);
+		currentSite = currSite;
+		if(mainMap!=null)
+		{
+			currentSite.addSiteMarker(mainMap, BitmapDescriptorFactory.HUE_GREEN);
+		}
 		if(o3TextView==null) Log.d(TAG, "o3TextView==null");
-		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));//, o3TextView, pm25TextView, siteTextView);
 	}
 	public void onNothingSelected(AdapterView<?> parent) {}
-	public void onItemSelectedTab(AdapterView<?> parent, View view, int pos, long id)
+
+	public void populateDropdown(Spinner spinner)
 	{
-		//String city = (String)parent.getItemAtPosition(pos);
-		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
-		Log.d(TAG, "onItemSelectedTab()");
-		Site currSite;
-		currSite = Globals.siteList.sites.get(pos);
-		if(o3TextView==null) Log.d(TAG, "o3TextView==null");
-		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+		String[] items = new String[Globals.siteList.sites.size()];
+		for (int i = 0; i < Globals.siteList.sites.size(); i++)
+			items[i]=Globals.siteList.sites.get(i).Name;
+		ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
+		spinner.setAdapter(adapter);
+		spinner.setOnItemSelectedListener(this);
+
+		Site closest = Globals.siteList.getClosest(Globals.lastLatitude, Globals.lastLongitude);
+		int i=0;
+		for(int j=0; j<spinner.getCount(); j++)
+			if(spinner.getItemAtPosition(j).toString().equalsIgnoreCase(closest.Name))
+			{
+				i=j;
+				break;
+			}
+		spinner.setSelection(i);
 	}
 
 	public void setDropDownSelection(String city)
@@ -462,6 +667,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 	public void openFarInfo(View view)
 	{
+		Globals.siteList.setDistances(Globals.lastLatitude, Globals.lastLongitude);
 		DialogFragment dialog = new TooFarDialog();
 		dialog.show(getFragmentManager(), "tooFar");
 	}
@@ -518,6 +724,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			double lon = a.getLongitude();
 			Log.d("Geocoder", lat + ","+lon);
 			//Toast.makeText(this, "Lat "+lat+"\nLon "+lon, Toast.LENGTH_LONG).show();
+			//Toast.makeText(this, "Address: "+a.toString(), Toast.LENGTH_LONG).show();
+			Toast.makeText(this, "City: "+a.getFeatureName()+"\nState: "+a.getAdminArea(), Toast.LENGTH_LONG).show();
 			Site site = Globals.siteList.getClosest(lat, lon);
 			if(site!=null)
 			{
@@ -528,6 +736,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		{
 			Log.d("Geocoder", "IOException");
 		}
+	}
+
+	public void goToMap(View view)
+	{
+		mViewPager.setCurrentItem(1);
+		if(mainMap==null)
+			return;
+
+		LatLng markerLocation = new LatLng(currentSite.Latitude, currentSite.Longitude);
+		mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLocation, zoomLevel));
 	}
 
 
@@ -629,14 +847,15 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		{
 			Log.d(TAG, "DROPDOWN HAS BEEN SET!!!!!!!!!!");
 
-			Log.d(TAG, "Listener HAS BEEN SET!!!!!!!!!!");
+			//Log.d(TAG, "Listener HAS BEEN SET!!!!!!!!!!");
 
-			if(!Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
+			if(!Globals.siteList.setDropdown(dropDown, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
 			{
+				populateDropdown(dropDown);
 				DialogFragment dialog = new GoToLocationSettingsDialog();
 				dialog.show(getFragmentManager(), "turnOnLocation");
 			}
-			Log.d(TAG, "DROPDOWN HAS BEEN POPULATED!!!!!!!!!!");
+			//Log.d(TAG, "DROPDOWN HAS BEEN POPULATED!!!!!!!!!!");
 			Site closest = Globals.siteList.getClosest(latitude, longitude);
 			if (closest != null)
 			{
@@ -672,7 +891,21 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		sb.append(Globals.setting3); sb.append("\r\n");
 		sb.append(Globals.lastLatitude); sb.append("\r\n");
 		sb.append(Globals.lastLongitude); sb.append("\r\n");
+
+		sb.append("SITELIST:\r\n");
+		for(int i=0; i<Globals.siteList.sites.size(); i++)
+		{
+			Site s = Globals.siteList.sites.get(i);
+			sb.append(s.SiteName); sb.append(",");
+			sb.append(s.AQSID); sb.append(",");
+			sb.append(s.Latitude); sb.append(",");
+			sb.append(s.Longitude); sb.append("\r\n");
+		}
+		sb.append(":ENDSITELIST\r\n");
+
+
 		outputString = sb.toString();
+		Log.d("SaveLoad", "Saved, including sites...");
 
 		//Log.d("GlobalsSave", "String to write is: "+outputString);
 

@@ -50,13 +50,41 @@ public class Globals
 			//Longitude
 			String lon = "";
 			while(data.charAt(i)!='\r') { lon=lon.concat(""+data.charAt(i++)); }
-			//i+=2;
+			i+=2;
+
+			//Sites
+			while(data.charAt(i)!='\r') { i++; }	i+=2;		//"SITELIST:"
+			//String read = "";
+			while(data.charAt(i)!=':')
+			{
+				String siteName = "";
+				while(data.charAt(i)!=',') { siteName=siteName.concat(""+data.charAt(i++)); }
+				i+=1;
+				String aqsid = "";
+				while(data.charAt(i)!=',') { aqsid=aqsid.concat(""+data.charAt(i++)); }
+				i+=1;
+				String siteLat = "";
+				while(data.charAt(i)!=',') { siteLat=siteLat.concat(""+data.charAt(i++)); }
+				i+=1;
+				String siteLon = "";
+				while(data.charAt(i)!='\r') { siteLon=siteLon.concat(""+data.charAt(i++)); }
+				i+=2;
+				float sLat;
+				float sLon;
+				try { sLat=Float.parseFloat(siteLat); } catch(NumberFormatException e) { sLat=0; }
+				try { sLon=Float.parseFloat(siteLon); } catch(NumberFormatException e) { sLon=0; }
+				siteList.addSite(siteName, aqsid, sLat, sLon);
+				Log.d("SaveLoad", "Added site "+siteName+"at "+sLat+","+sLon);
+			}
+			while(data.charAt(i)!='\r') { i++; }	i+=2;		//":ENDSITELIST"
 
 			setting1=s1.equals("true");
 			setting2=s2.equals("true");
 			setting3=s3.equals("true");
 			try { lastLatitude=Float.parseFloat(lat); } catch(NumberFormatException e) { lastLatitude=0; }
 			try { lastLongitude=Float.parseFloat(lon); } catch(NumberFormatException e) { lastLongitude=0; }
+
+			Log.d("SaveLoad", "Loaded, including sites...");
 
 			//siteList.parseSites(data, 5);
 			//Log.d(DEBUG_TAG, "Done parsing globals...");

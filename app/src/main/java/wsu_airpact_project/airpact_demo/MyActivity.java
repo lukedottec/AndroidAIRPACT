@@ -61,7 +61,7 @@ public class MyActivity extends ActionBarActivity  implements
 		//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 
 		dropDown = (Spinner)findViewById(R.id.spinner);
-		if(!Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
+		if(!Globals.siteList.setDropdown(dropDown, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
 		{
 			DialogFragment dialog = new GoToLocationSettingsDialog();
 			dialog.show(getFragmentManager(), "turnOnLocation");
@@ -77,7 +77,7 @@ public class MyActivity extends ActionBarActivity  implements
 		Site currSite;
 		if(pos>Globals.siteList.sites.size()) return;			//Due to siteList not being thread-safe?
 		currSite = Globals.siteList.sites.get(pos);
-		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));//, o3TextView, pm25TextView, siteTextView);
 	}
 	public void onNothingSelected(AdapterView<?> parent) {}
 
@@ -201,7 +201,7 @@ public class MyActivity extends ActionBarActivity  implements
 			if(closest!=null) setDropDownSelection(closest.Name);
 			//Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
 
-			Intent intent = new Intent(this, TabActivity.class);
+			//Intent intent = new Intent(this, TabActivity.class);
 			//startActivity(intent);
 		}
 		else

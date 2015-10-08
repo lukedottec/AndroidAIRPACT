@@ -3,12 +3,13 @@ package wsu_airpact_project.airpact_demo;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.TextView;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
@@ -38,12 +39,15 @@ public class Site implements Comparable<Site>
 	public String data;
 //	private String dateString;
 //	private String lastDateO3ap;
+
+	private Marker marker = null;
+
 	private static final String DEBUG_TAG = "SiteTag";
 //	private static final String DEBUG_TAG2 = "APReading";
 
-	private TextView TVO3;
-	private TextView TVPM25;
-	private TextView TVSite;
+	//private TextView TVO3;
+	//private TextView TVPM25;
+	//private TextView TVSite;
 
 	public Site(String _name, String _aqsid, double _lat, double _long)
 	{
@@ -59,21 +63,51 @@ public class Site implements Comparable<Site>
 
 		SiteName=Name.replace('+', ' ');
 
-		TVO3=null;
-		TVPM25=null;
+		//TVO3=null;
+		//TVPM25=null;
+	}
+
+	public boolean hasValues()
+	{
+		return OZONEavg_ap!=0;
 	}
 
 	@Override
-	public int compareTo(Site s2)
+	public int compareTo(@NonNull Site s2)
 	{
 		return (int)(this.distance-s2.distance);
 	}
 
-	public void getLatestData(ConnectivityManager connService, TextView tvO3, TextView tvpm25, TextView tvsite)
+	public void updatePin(ConnectivityManager connService)//, TextView tvO3, TextView tvpm25, TextView tvsite)
 	{
-		TVO3=tvO3;
-		TVPM25=tvpm25;
-		TVSite=tvsite;
+		//TVO3=tvO3;
+		//TVPM25=tvpm25;
+		//TVSite=tvsite;
+
+		//String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/default.aspx?aqsid="+AQSID+"&format=csv";
+		String stringURL="http://www.aeolus.wsu.edu:3838/mobile_data/tmp/"+AQSID+".csv";
+		NetworkInfo networkInfo = connService.getActiveNetworkInfo();
+		if(networkInfo != null && networkInfo.isConnected())
+		{
+			Log.d(DEBUG_TAG, "Downloading: "+Name);
+			DownloadWebpageTask dwt = new DownloadWebpageTask();
+			dwt.setParent(this);
+			dwt.setType("updatePin");
+			dwt.execute(stringURL);
+			//new DownloadWebpageTask().setType("updatePin").execute(stringURL);
+		}
+		else
+		{
+			data = "No network connection available.";
+			parseData(data);
+		}
+	}
+
+	public void getLatestData(ConnectivityManager connService)//, TextView tvO3, TextView tvpm25, TextView tvsite)
+	{
+		//TVO3=tvO3;
+		//TVPM25=tvpm25;
+		//TVSite=tvsite;
 
 		//String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/default.aspx?aqsid="+AQSID+"&format=csv";
 		String stringURL="http://www.aeolus.wsu.edu:3838/mobile_data/tmp/"+AQSID+".csv";
@@ -172,13 +206,24 @@ public class Site implements Comparable<Site>
 		PM25avg_an = Math.round(PM25avg_an*10)/10;
 	}
 
-	public void addSiteMarker(GoogleMap map, float clr)
+	public Marker addSiteMarker(GoogleMap map, float clr)
 	{
-		map.addMarker(new MarkerOptions()
+		if(marker!=null)
+			marker.remove();
+		MarkerOptions mo = new MarkerOptions()
 				.title(Name)
 				.snippet("AN Site")
 				.position(new LatLng(Latitude, Longitude))
-				.icon(BitmapDescriptorFactory.defaultMarker(clr)));
+				.icon(BitmapDescriptorFactory.defaultMarker(clr));
+		if(OZONEavg_ap!=0)
+		{
+			mo.snippet("AQI: Unknown  \r\nOzone: "+OZONEavg_ap+"  \r\nPM2.5: "+PM25avg_ap);
+		}
+		/*else
+		{
+			//updateSiteMarker
+		}*/
+		return marker = map.addMarker(mo);
 	}
 
 	public double getDistanceToLL(double lat, double lon)
@@ -202,15 +247,23 @@ public class Site implements Comparable<Site>
 
 	public void setMainLabels()
 	{
-		setDistance(Globals.lastLatitude, Globals.lastLongitude);
 		Globals.tabActivity.setMainLabels(this);
 	}
 
+	public float getAQI()
+	{
+		return 0;
+	}
 
 
 
 	private class DownloadWebpageTask extends AsyncTask<String, Void, String>
 	{
+		protected Site parent = null;
+		protected String type = "None";
+		public void setParent(Site s) { parent=s; }
+		public void setType(String t) { type=t; }
+
 		@Override
 		protected String doInBackground(String... urls)
 		{
@@ -234,7 +287,16 @@ public class Site implements Comparable<Site>
 			//if(TVPM25!=null) { TVPM25.setText("PM2.5: "+PM25avg_ap); TVPM25=null; }
 			//if(TVSite!=null) { TVSite.setText("Site: "+Name); TVSite=null; }
 			//Globals.tabActivity.setMainLabels(OZONEavg_ap, PM25avg_ap, Name, View.INVISIBLE);
-			setMainLabels();
+			if(type.equals("None"))
+			{
+				setDistance(Globals.lastLatitude, Globals.lastLongitude);
+				setMainLabels();
+			}
+			else if(type.equals("updatePin"))
+			{
+				setDistance(Globals.lastLatitude, Globals.lastLongitude);
+				Globals.tabActivity.updateMarker(parent);
+			}
 			//Log.d(DEBUG_TAG, "Set labels for site "+Name);
 		}
 	}
