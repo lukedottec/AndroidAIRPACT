@@ -16,6 +16,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -75,7 +76,14 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected GroundOverlayOptions goo = null;
 	protected GroundOverlay overlay = null;
 	//protected ProgressDialog pDialog;
-	protected Bitmap bitmap;
+	protected int hourShown;
+	protected int maxHours = 24;
+	//protected Bitmap bitmap;
+	protected Bitmap[] bitmapsO3;
+	public AnimationThread animThread = null;
+	protected boolean animThreadHasStarted = false;
+	public String pinMode = "All";
+	protected DrawerLayout navDrawer = null;
 
 
 	//Main tab
@@ -183,6 +191,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 		buildGoogleApiClient();
 		//*/
+
+		bitmapsO3 = new Bitmap[48];
+		//for(int i=0; i<48; i++)
+		//	bitmapsO3[i] = null;
 	}
 
 
@@ -229,6 +241,15 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			MapFragment mF = (MapFragment) getFragmentManager().findFragmentById(R.id.mapintab);
 			mF.getMapAsync(this);
 			mapFound = true;
+			DrawerLayout dl = (DrawerLayout) findViewById(R.id.drawer_layout);
+			if(dl==null) Log.d("Drawer", "COULDN'T FIND IT");
+			else Log.d("Drawer", "Found the drawer!");
+			if(dl!=null)
+			{
+				navDrawer = dl;
+				navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+			}
+
 		}//*/
 		if (i == 0 && !mainFound)
 		{
@@ -447,6 +468,22 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 	}
 
+	public void setSiteMarkers(Site siteUsing, GoogleMap map)
+	{
+		for (int i = 0; i < Globals.siteList.sites.size(); i++)
+		{
+			Site s = Globals.siteList.sites.get(i);
+			float clr = .01f;
+
+			if (s.Name.equals(siteUsing.Name))
+				clr = BitmapDescriptorFactory.HUE_GREEN;
+			else clr = BitmapDescriptorFactory.HUE_RED;
+
+			s.addSiteMarker(map, clr);
+			Log.d("MapTag", "   set site marker for "+s.Name);
+		}
+	}
+
 	public void addSitesToMap(GoogleMap map)
 	{
 		Log.d("MapTag", "Starting addSitesToMap()");
@@ -454,17 +491,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		if(currentSite!=null) { siteUsing = currentSite; }
 		else { siteUsing = Globals.siteList.getClosest(latitude, longitude); }
 		//siteUsing = Globals.siteList.getClosest(latitude, longitude);
-		for (int i = 0; i < Globals.siteList.sites.size(); i++)
-		{
-			Site s = Globals.siteList.sites.get(i);
-			float clr;
-			if(s.Name.equals(siteUsing.Name))
-				clr = BitmapDescriptorFactory.HUE_GREEN;
-			else clr = BitmapDescriptorFactory.HUE_RED;
-			s.addSiteMarker(map, clr);
-			Log.d("MapTag", "   added site "+s.Name);
-		}
-
+		setSiteMarkers(siteUsing, map);
 
 		LatLngBounds bounds = new LatLngBounds(
 				new LatLng(39.79, -125.87),
@@ -476,15 +503,29 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 		//overlay = map.addGroundOverlay(goo);
 		Log.d("ImageStuff", "Calling setImageOverlay(null)");
-		setImageOverlay(null);
+		setImageOverlay(-1);
 		Log.d("ImageStuff", "Calling LoadImage().execute");
+		for(int i=0; i<maxHours; i++)
+		{
+			LoadImage li = new LoadImage();
+			li.setValues("Ozone", i);
+			li.execute(getOverlayURL("Ozone", i));
+		}
+		//new LoadImage().execute(url);
+	}
+
+	public String getOverlayURL(String type, int hourDelta)
+	{
 		Calendar c = Calendar.getInstance();
-		String url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
-				c.get(Calendar.YEAR)+"/"+c.get(Calendar.YEAR)+"_"+addZero(c.get(Calendar.MONTH)+1)+"_"+addZero(c.get(Calendar.DAY_OF_MONTH))+
-				"/airpact4_08hrO3_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
+		c.add(Calendar.HOUR, hourDelta);
+		String url = null;
+		if(type.equals("Ozone"))
+			url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
+					c.get(Calendar.YEAR)+"/"+c.get(Calendar.YEAR)+"_"+addZero(c.get(Calendar.MONTH)+1)+"_"+addZero(c.get(Calendar.DAY_OF_MONTH))+
+					"/airpact4_08hrO3_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
 		Log.d("ImageStuff", "     with \""+url+"\"");
 		//new LoadImage().execute("http://www.lar.wsu.edu/airpact/gmap/images/anim/species/2015/2015_10_02/airpact4_08hrO3_2015100215.gif");
-		new LoadImage().execute(url);
+		return url;
 	}
 
 	public String addZero(int i)
@@ -494,16 +535,52 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		return "0"+i;
 	}
 
-	public void setImageOverlay(Bitmap b)
+	public void setOverlayBitmap(String type, int hourDelta, Bitmap b)
 	{
+		if (type.equals("Ozone"))
+		{
+			bitmapsO3[hourDelta] = b;
+			if(hourDelta == 0)
+			{
+				setImageOverlay(0);
+				if(animThread==null)
+				{
+					animThread = new AnimationThread();
+					animThread.start();
+					animThreadHasStarted = true;
+				}
+			}
+		}
+	}
+
+	public void advanceOverlay()
+	{
+		int nextHour = hourShown+1;
+		if(nextHour >= maxHours)
+			nextHour = 0;
+		if(bitmapsO3[nextHour]==null)
+		{
+			Log.d("MapThreading", "The next image #"+nextHour+" is null");
+		}
+		else
+		{
+			setImageOverlay(nextHour);
+			hourShown = nextHour;
+			Log.d("MapThreading", "Set next image #"+nextHour);
+		}
+	}
+
+	public void setImageOverlay(int hourDelta)
+	{
+		if(hourDelta==-1) return;
 		Log.d("ImageStuff", "Setting Image overlay");
 		if(goo!=null)
 		{
-			if(b!=null)
+			if(bitmapsO3[hourDelta]!=null)
 			{
 				if(overlay!=null)
 					overlay.remove();
-				goo.image(BitmapDescriptorFactory.fromBitmap(b));
+				goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsO3[hourDelta]));
 				overlay = mainMap.addGroundOverlay(goo);
 				//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
 			}
@@ -519,9 +596,44 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		//overlay.setImage();
 	}
 
+	private class AnimationThread extends Thread
+	{
+		public boolean shouldContinue = true;
+
+		@Override
+		public void run()
+		{
+			Log.d("MAPThreading", "In AnimationThread.run()");
+			Calendar c = Calendar.getInstance();
+			c.add(Calendar.SECOND, 1);
+			while(shouldContinue)
+			{
+				if(Calendar.getInstance().before(c))
+					continue;
+				Log.d("MAPThreading", "In loop now, adding seconds");
+				c.add(Calendar.SECOND, 1);
+				//Globals.tabActivity.advanceOverlay();
+				runOnUiThread(new Runnable()
+				{
+					public void run()
+					{
+						advanceOverlay();
+					}
+				});
+			}
+		}
+	}
+
 	private class LoadImage extends AsyncTask<String, String, Bitmap>
 	{
-
+		private int hourDelta = 0;
+		private String type;
+		private Bitmap bmap;
+		public void setValues(String t, int hd)
+		{
+			type = t;
+			hourDelta = hd;
+		}
 		@Override
 		protected void onPreExecute()
 		{
@@ -534,27 +646,28 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		{
 			try
 			{
-				bitmap = BitmapFactory.decodeStream((InputStream)new URL(args[0]).getContent());
+				bmap = BitmapFactory.decodeStream((InputStream)new URL(args[0]).getContent());
 			}
 			catch(Exception e)
 			{
 				e.printStackTrace();
 			}
-			return bitmap;
+			return bmap;
 		}
 		protected void onPostExecute(Bitmap image)
 		{
 			if(image!=null)
 			{
-				Globals.tabActivity.setImageOverlay(image);
+				//Globals.tabActivity.setImageOverlay(image);
+				Globals.tabActivity.setOverlayBitmap(type, hourDelta, image);
 				Log.d("ImageStuff", "LoadImage: image!=null");
 				//pDialog.dismiss();
 			}
 			else
 			{
 				//pDialog.dismiss();
-				Log.d("ImageStuff", "LoadImage: image==null");
-				Toast.makeText(TabActivity.this, "Overlay image not found", Toast.LENGTH_LONG).show();
+				Log.d("ImageStuff", "LoadImage: image==null with hour "+hourDelta);
+				Toast.makeText(TabActivity.this, "Overlay image not found for hour "+hourDelta, Toast.LENGTH_SHORT).show();
 			}
 		}
 	}
@@ -595,7 +708,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		else clr = BitmapDescriptorFactory.HUE_RED;
 
 		Marker m = s.addSiteMarker(mainMap, clr);
-		m.showInfoWindow();
+		if(m!=null) m.showInfoWindow();
 		Log.d("TabActivityTag", "Updated site marker for "+s.Name);
 	}
 
@@ -740,12 +853,53 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 	public void goToMap(View view)
 	{
-		mViewPager.setCurrentItem(1);
+		/*mViewPager.setCurrentItem(1);
 		if(mainMap==null)
 			return;
 
 		LatLng markerLocation = new LatLng(currentSite.Latitude, currentSite.Longitude);
-		mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLocation, zoomLevel));
+		mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLocation, zoomLevel));*/
+
+
+		togglePinMode(view);
+		//updateAllSites(view);
+	}
+
+	public void updateAllSites(View view)
+	{
+		//Currently changes the main tab labels every time it gets a new site's updates
+		for(int i=0; i<Globals.siteList.sites.size(); i++)
+		{
+			Site s = Globals.siteList.sites.get(i);
+			s.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
+		}
+	}
+
+	public void togglePinMode(View view)
+	{
+		if(pinMode.equals("All"))
+		{ pinMode = "Ozone"; }
+		else if(pinMode.equals("Ozone"))
+		{ pinMode = "PM25"; }
+		else if(pinMode.equals("PM25"))
+		{ pinMode = "None"; }
+		else if(pinMode.equals("None"))
+		{ pinMode = "All"; }
+
+		Site siteUsing;
+		if(currentSite!=null) { siteUsing = currentSite; }
+		else { siteUsing = Globals.siteList.getClosest(latitude, longitude); }
+		setSiteMarkers(siteUsing, mainMap);
+
+		TextView tv = (TextView)view;
+		tv.setText(pinMode);
+	}
+
+	public void openNavDrawer(View view)
+	{
+		Log.d("Open navdrawer", "Open navdrawer called");
+		navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN);
+		navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
 	}
 
 
@@ -765,6 +919,12 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected void onStart() {
 		super.onStart();
 		load();
+		if(animThreadHasStarted)
+		{
+			animThread = new AnimationThread();
+			animThread.start();
+			//animThreadHasStarted = true;
+		}
 	}
 	@Override
 	protected void onStop()
@@ -775,6 +935,19 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			mGoogleApiClient.disconnect();
 		}
 		save();
+		if(animThread!=null&&animThread.isAlive())
+		{
+			animThread.shouldContinue = false;
+			try
+			{
+				animThread.join();
+				animThread=null;
+			}
+			catch (InterruptedException e)
+			{
+				Log.d(TAG, "InterruptedException trying to animThread.join()");
+			}
+		}
 	}
 
 	@Override
@@ -899,7 +1072,9 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			sb.append(s.SiteName); sb.append(",");
 			sb.append(s.AQSID); sb.append(",");
 			sb.append(s.Latitude); sb.append(",");
-			sb.append(s.Longitude); sb.append("\r\n");
+			sb.append(s.Longitude); sb.append(",");
+			sb.append(s.hasOzone); sb.append(",");
+			sb.append(s.hasPM25); sb.append("\r\n");
 		}
 		sb.append(":ENDSITELIST\r\n");
 

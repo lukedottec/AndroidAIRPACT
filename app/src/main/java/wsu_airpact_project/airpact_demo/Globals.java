@@ -67,14 +67,24 @@ public class Globals
 				while(data.charAt(i)!=',') { siteLat=siteLat.concat(""+data.charAt(i++)); }
 				i+=1;
 				String siteLon = "";
-				while(data.charAt(i)!='\r') { siteLon=siteLon.concat(""+data.charAt(i++)); }
+				while(data.charAt(i)!=',') { siteLon=siteLon.concat(""+data.charAt(i++)); }
+				i+=1;
+				String hasOzoneStr = "";
+				while(data.charAt(i)!=',') { hasOzoneStr=hasOzoneStr.concat(""+data.charAt(i++)); }
+				i+=1;
+				String hasPM25Str = "";
+				while(data.charAt(i)!='\r') { hasPM25Str=hasPM25Str.concat(""+data.charAt(i++)); }
 				i+=2;
 				float sLat;
 				float sLon;
+				boolean hasOzone;
+				boolean hasPM25;
 				try { sLat=Float.parseFloat(siteLat); } catch(NumberFormatException e) { sLat=0; }
 				try { sLon=Float.parseFloat(siteLon); } catch(NumberFormatException e) { sLon=0; }
-				siteList.addSite(siteName, aqsid, sLat, sLon);
-				Log.d("SaveLoad", "Added site "+siteName+"at "+sLat+","+sLon);
+				try { hasOzone=Boolean.parseBoolean(hasOzoneStr); } catch(Exception e) { hasOzone=true; }
+				try { hasPM25=Boolean.parseBoolean(hasPM25Str); } catch(Exception e) { hasPM25=true; }
+				siteList.addSite(siteName, aqsid, sLat, sLon, hasOzone, hasPM25);
+				Log.d("SaveLoad", "Added site "+siteName+"at "+sLat+","+sLon+","+hasOzone+","+hasPM25);
 			}
 			while(data.charAt(i)!='\r') { i++; }	i+=2;		//":ENDSITELIST"
 

@@ -29,10 +29,12 @@ public class Site implements Comparable<Site>
 	public double Latitude;		//8.4
 	public double Longitude;	//8.4
 	public double distance=1000;//
-	public float OZONEavg_ap;	//
-	public float OZONEavg_an;	//
-	public float PM25avg_ap;	//
-	public float PM25avg_an;	//
+	public float OZONEavg_ap = -1;	//
+	public float OZONEavg_an = -1;	//
+	public float PM25avg_ap = -1;	//
+	public float PM25avg_an = -1;	//
+	public boolean hasOzone;
+	public boolean hasPM25;
 //	public Time lastUpdate;
 	//public int GMToff;			//smallint
 	//public smalldatetime GMT;	//smalldatetime
@@ -49,16 +51,18 @@ public class Site implements Comparable<Site>
 	//private TextView TVPM25;
 	//private TextView TVSite;
 
-	public Site(String _name, String _aqsid, double _lat, double _long)
+	public Site(String _name, String _aqsid, double _lat, double _long, boolean _hasOzone, boolean _hasPM25)
 	{
 		Name=_name;
 		AQSID=_aqsid;
 		Latitude=_lat;
 		Longitude=_long;
-		OZONEavg_ap=0;
-		OZONEavg_an=0;
-		PM25avg_ap=0;
-		PM25avg_an=0;
+		OZONEavg_ap=-1;
+		OZONEavg_an=-1;
+		PM25avg_ap=-1;
+		PM25avg_an=-1;
+		hasOzone = _hasOzone;
+		hasPM25 = _hasPM25;
 		//lastUpdate=Time.zero;
 
 		SiteName=Name.replace('+', ' ');
@@ -67,10 +71,7 @@ public class Site implements Comparable<Site>
 		//TVPM25=null;
 	}
 
-	public boolean hasValues()
-	{
-		return OZONEavg_ap!=0;
-	}
+	public boolean hasValues() { return OZONEavg_ap!=-1; }
 
 	@Override
 	public int compareTo(@NonNull Site s2)
@@ -128,7 +129,10 @@ public class Site implements Comparable<Site>
 	{
 		data=d;
 		int i=0;
-		OZONEavg_ap=1;
+		OZONEavg_ap=-1;
+		OZONEavg_an=-1;
+		PM25avg_ap=-1;
+		PM25avg_an=-1;
 
 		//Ignore first line, newlines are formatted /r/n
 		String firstLine = "";
@@ -152,10 +156,10 @@ public class Site implements Comparable<Site>
 				while(d.charAt(i)!=',') { dateLocal=dateLocal.concat(""+d.charAt(i++)); }
 				i++;
 
-				/*//AQSID
+				//AQSID
 				String aqsid = "";
 				while(d.charAt(i)!=',') { aqsid=aqsid.concat(""+d.charAt(i++)); }
-				i++;*/
+				i++;
 
 				/*//SiteName
 				String siteName = "";
@@ -168,16 +172,16 @@ public class Site implements Comparable<Site>
 				while(d.charAt(i)!=',') { ozoneavg_ap=ozoneavg_ap.concat(""+d.charAt(i++)); }
 				i++;
 
-				//OZONEavg_an
-				float o3_an;
-				String ozoneavg_an = "";
-				while(d.charAt(i)!=',') { ozoneavg_an=ozoneavg_an.concat(""+d.charAt(i++)); }
-				i++;
-
 				//PM25avg_ap
 				float pm_ap;
 				String pm25avg_ap = "";
 				while(d.charAt(i)!=',') { pm25avg_ap=pm25avg_ap.concat(""+d.charAt(i++)); }
+				i++;
+
+				//OZONEavg_an
+				float o3_an;
+				String ozoneavg_an = "";
+				while(d.charAt(i)!=',') { ozoneavg_an=ozoneavg_an.concat(""+d.charAt(i++)); }
 				i++;
 
 				//PM25avg_an
@@ -186,30 +190,41 @@ public class Site implements Comparable<Site>
 				while(d.charAt(i)!='\r'&&d.charAt(i)!='\n') { pm25avg_an=pm25avg_an.concat(""+d.charAt(i++)); }
 				i++;
 
-				try { o3_ap=Float.parseFloat(ozoneavg_ap); } catch(NumberFormatException e) { o3_ap=0; }
-				try { o3_an=Float.parseFloat(ozoneavg_an); } catch(NumberFormatException e) { o3_an=0; }
-				try { pm_ap=Float.parseFloat(pm25avg_ap); } catch(NumberFormatException e) { pm_ap=0; }
-				try { pm_an=Float.parseFloat(pm25avg_an); } catch(NumberFormatException e) { pm_an=0; }
+				try { o3_ap=Float.parseFloat(ozoneavg_ap); } catch(NumberFormatException e) { o3_ap=-1; }
+				try { o3_an=Float.parseFloat(ozoneavg_an); } catch(NumberFormatException e) { o3_an=-1; }
+				try { pm_ap=Float.parseFloat(pm25avg_ap); } catch(NumberFormatException e) { pm_ap=-1; }
+				try { pm_an=Float.parseFloat(pm25avg_an); } catch(NumberFormatException e) { pm_an=-1; }
 
-				if(o3_ap!=0) { OZONEavg_ap=o3_ap; }
-				if(o3_an!=0) { OZONEavg_an=o3_an; }
-				if(pm_ap!=0) { PM25avg_ap=pm_ap; }
-				if(pm_an!=0) { PM25avg_an=pm_an; }
+				if(o3_ap!=-1) { OZONEavg_ap=o3_ap; }
+				if(o3_an!=-1) { OZONEavg_an=o3_an; }
+				if(pm_ap!=-1) { PM25avg_ap=pm_ap; }
+				if(pm_an!=-1) { PM25avg_an=pm_an; }
 			}
 		}
 		catch(StringIndexOutOfBoundsException e)
 		{
 		}
-		OZONEavg_ap = Math.round(OZONEavg_ap*10)/10;
-		OZONEavg_an = Math.round(OZONEavg_an*10)/10;
-		PM25avg_ap = Math.round(PM25avg_ap*10)/10;
-		PM25avg_an = Math.round(PM25avg_an*10)/10;
+		//OZONEavg_ap = Math.round(OZONEavg_ap*10)/10;
+		//OZONEavg_an = Math.round(OZONEavg_an*10)/10;
+		//PM25avg_ap = Math.round(PM25avg_ap*10)/10;
+		//PM25avg_an = Math.round(PM25avg_an*10)/10;
+
+		hasOzone = (OZONEavg_an!=-1);
+		hasPM25 = (PM25avg_an!=-1);
 	}
 
 	public Marker addSiteMarker(GoogleMap map, float clr)
 	{
 		if(marker!=null)
 			marker.remove();
+
+		if(Globals.tabActivity.pinMode.equals("None")
+				||(Globals.tabActivity.pinMode.equals("Ozone")&&!hasOzone)
+				||(Globals.tabActivity.pinMode.equals("PM25")&&!hasPM25))
+		{
+			return null;
+		}
+
 		MarkerOptions mo = new MarkerOptions()
 				.title(Name)
 				.snippet("AN Site")

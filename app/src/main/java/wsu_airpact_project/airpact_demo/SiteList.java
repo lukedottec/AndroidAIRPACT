@@ -25,7 +25,7 @@ public class SiteList
 	public ArrayList<Site> sites;
 	//public TimeDate lastUpdated;
 
-	private GoogleMap map;
+	public GoogleMap map;
 	private Spinner spinner;
 	//private MyActivity activity;
 	//private TabActivity tabActivity;
@@ -35,11 +35,14 @@ public class SiteList
 		sites = new ArrayList<>();
 	}
 
-	public void addSite(String siteName, String aqsid, float latitude, float longitude)
+	public void addSite(String siteName, String aqsid, float latitude, float longitude, boolean hasOzone, boolean hasPM25)
 	{
 		Site s = getByName(siteName);
 		if(s==null)
-			sites.add(new Site(siteName, aqsid, latitude, longitude));
+		{
+			sites.add(new Site(siteName, aqsid, latitude, longitude, hasOzone, hasPM25));
+
+		}
 	}
 
 	public boolean addToMap(GoogleMap m, ConnectivityManager connService)
@@ -262,7 +265,7 @@ public class SiteList
 				try { latitude=Float.parseFloat(lat); } catch(NumberFormatException e) { latitude=0; }
 				try { longitude=Float.parseFloat(lon); } catch(NumberFormatException e) { longitude=0; }
 
-				addSite(siteName, aqsid, latitude, longitude);
+				addSite(siteName, aqsid, latitude, longitude, true, true);
 
 				siteNum++;
 				Log.d(DEBUG_TAG, "Parsed site "+siteNum+": "+siteName);
