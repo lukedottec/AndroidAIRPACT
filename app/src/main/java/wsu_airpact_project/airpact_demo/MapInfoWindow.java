@@ -39,7 +39,7 @@ public class MapInfoWindow implements GoogleMap.InfoWindowAdapter
 			TextView name = (TextView) view.findViewById(R.id.textViewSitenameInfoWindow);
 			name.setText(s.Name);
 			TextView aqi = (TextView) view.findViewById(R.id.textViewAQIInfoWindow);
-			aqi.setText("AQI: " + s.getAQI());
+			aqi.setText("AQI: " + s.getAQI(0, 0));
 			TextView o3 = (TextView) view.findViewById(R.id.textViewO3InfoWindow);
 			o3.setText("Ozone: " + s.OZONEavg_ap);
 			TextView pm25 = (TextView) view.findViewById(R.id.textViewPM25InfoWindow);

@@ -18,6 +18,7 @@ public class MainTabFragment extends TabActivity.TabFragment //implements Adapte
 	View rv;
 	boolean hasInflated=false;
 	protected Spinner dropDown;
+	protected TextView aqiTextView;
 	protected TextView o3TextView;
 	protected TextView pm25TextView;
 	protected TextView siteTextView;
@@ -36,6 +37,8 @@ public class MainTabFragment extends TabActivity.TabFragment //implements Adapte
 			View rootView = inflater.inflate(R.layout.fragment_main_tab, container, false);
 
 			dropDown = (Spinner)rootView.findViewById(R.id.spinnerinmaintab);
+			aqiTextView = (TextView)rootView.findViewById(R.id.textViewAQIValueInTab);
+			if(aqiTextView==null) { Log.d("WTF", "WTF"); }
 			o3TextView = (TextView)rootView.findViewById(R.id.textViewOzoneLabelInTab);
 			pm25TextView = (TextView)rootView.findViewById(R.id.textViewPM2_5LabelInTab);
 			siteTextView = (TextView)rootView.findViewById(R.id.textViewSiteLabelInTab);

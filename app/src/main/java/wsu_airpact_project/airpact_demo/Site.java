@@ -16,6 +16,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Scanner;
 
 /**
@@ -23,6 +27,8 @@ import java.util.Scanner;
  */
 public class Site implements Comparable<Site>
 {
+	public String myDate = null;
+
 	public String SiteName;		//25
 	public String Name;			//25
 	public String AQSID;		//9
@@ -33,8 +39,14 @@ public class Site implements Comparable<Site>
 	public float OZONEavg_an = -1;	//
 	public float PM25avg_ap = -1;	//
 	public float PM25avg_an = -1;	//
+	public float[] OZONE8hr_ap;
+	public float[] OZONE8hr_an;
+	public float[] PM258hr_ap;
+	public float[] PM258hr_an;
 	public boolean hasOzone;
 	public boolean hasPM25;
+	private int startingHour = -12;
+	private int hoursToRecord = 36;
 //	public Time lastUpdate;
 	//public int GMToff;			//smallint
 	//public smalldatetime GMT;	//smalldatetime
@@ -61,6 +73,10 @@ public class Site implements Comparable<Site>
 		OZONEavg_an=-1;
 		PM25avg_ap=-1;
 		PM25avg_an=-1;
+		OZONE8hr_ap = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) OZONE8hr_ap[i]=-1;
+		OZONE8hr_an = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) OZONE8hr_an[i]=-1;
+		PM258hr_ap = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) PM258hr_ap[i]=-1;
+		PM258hr_an = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) PM258hr_an[i]=-1;
 		hasOzone = _hasOzone;
 		hasPM25 = _hasPM25;
 		//lastUpdate=Time.zero;
@@ -125,7 +141,8 @@ public class Site implements Comparable<Site>
 		}
 	}
 
-	public void parseData(String d)
+	public void parseData(String d) { parseData(d, Calendar.getInstance()); }
+	public void parseData(String d, Calendar current)
 	{
 		data=d;
 		int i=0;
@@ -133,6 +150,10 @@ public class Site implements Comparable<Site>
 		OZONEavg_an=-1;
 		PM25avg_ap=-1;
 		PM25avg_an=-1;
+		//Calendar current = Calendar.getInstance();
+		current.set(Calendar.MINUTE, 0);
+		current.set(Calendar.SECOND, 0);
+		current.set(Calendar.MILLISECOND, 0);
 
 		//Ignore first line, newlines are formatted /r/n
 		String firstLine = "";
@@ -190,6 +211,24 @@ public class Site implements Comparable<Site>
 				while(d.charAt(i)!='\r'&&d.charAt(i)!='\n') { pm25avg_an=pm25avg_an.concat(""+d.charAt(i++)); }
 				i++;
 
+				long diff = -999;
+				try
+				{
+					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					Date date = sdf.parse(dateLocal);
+					Calendar c = Calendar.getInstance();
+					c.setTimeInMillis(date.getTime());
+					Log.d("TimeParse", ""+Name+"   Year = "+c.get(Calendar.YEAR)+" Month = "+c.get(Calendar.MONTH)+" Day = "+c.get(Calendar.DAY_OF_MONTH)+" Hour = "+c.get(Calendar.HOUR_OF_DAY)+" Minute = "+c.get(Calendar.MINUTE)+" Second = "+c.get(Calendar.SECOND)+" MS = "+c.get(Calendar.MILLISECOND));
+					Log.d("TimeParse", ""+Name+"   Year = "+current.get(Calendar.YEAR)+" Month = "+current.get(Calendar.MONTH)+" Day = "+current.get(Calendar.DAY_OF_MONTH)+" Hour = "+current.get(Calendar.HOUR_OF_DAY)+" Minute = "+current.get(Calendar.MINUTE)+" Second = "+current.get(Calendar.SECOND)+" MS = "+current.get(Calendar.MILLISECOND));
+					diff = c.getTimeInMillis()-current.getTimeInMillis();
+					diff/=1000*60*60;
+					Log.d("TimeParse", "     +"+diff);
+				}
+				catch(ParseException e)
+				{
+					Log.d("TimeParse", "FAILED TO PARSE \""+dateLocal+"\"");
+				}
+
 				try { o3_ap=Float.parseFloat(ozoneavg_ap); } catch(NumberFormatException e) { o3_ap=-1; }
 				try { o3_an=Float.parseFloat(ozoneavg_an); } catch(NumberFormatException e) { o3_an=-1; }
 				try { pm_ap=Float.parseFloat(pm25avg_ap); } catch(NumberFormatException e) { pm_ap=-1; }
@@ -199,6 +238,19 @@ public class Site implements Comparable<Site>
 				if(o3_an!=-1) { OZONEavg_an=o3_an; }
 				if(pm_ap!=-1) { PM25avg_ap=pm_ap; }
 				if(pm_an!=-1) { PM25avg_an=pm_an; }
+
+				if(diff>=startingHour&&diff<startingHour+hoursToRecord)
+				{
+					if((int)diff-startingHour==0)
+					{
+						myDate = dateLocal;
+					}
+					if(o3_ap!=-1) OZONE8hr_ap[(int)diff-startingHour]=o3_ap;
+					if(o3_an!=-1) OZONE8hr_an[(int)diff-startingHour]=o3_an;
+					if(pm_ap!=-1) PM258hr_ap[(int)diff-startingHour]=pm_ap;
+					if(pm_an!=-1) PM258hr_an[(int)diff-startingHour]=pm_an;
+					Log.d("TimeParse", "     Set array values for hour "+diff);
+				}
 			}
 		}
 		catch(StringIndexOutOfBoundsException e)
@@ -265,9 +317,114 @@ public class Site implements Comparable<Site>
 		Globals.tabActivity.setMainLabels(this);
 	}
 
-	public float getAQI()
+	public int getAQI(int hour)
 	{
-		return 0;
+		return getAQI(OZONE8hr_ap[hour],PM258hr_ap[hour]);
+	}
+	public int getAQI(float o3_toUse, float pm25_toUse)
+	{
+		if(!hasValues()) return -1;
+		if(o3_toUse==0&&pm25_toUse==0)
+		{
+			o3_toUse=OZONEavg_ap;
+			pm25_toUse=PM25avg_ap;
+		}
+		if(o3_toUse==-1&&pm25_toUse==-1)
+			return 0;
+		int aqi = -1;
+
+		//Values for breakpoints taken 10/27 from http://www3.epa.gov/airnow/aqi-technical-assistance-document-dec2013.pdf
+		//Uses 8hr, unless AQI=100-300, then use max of both, if AQI>300, use just 1hr
+		int aqiO3 = -1;
+		int O3 = (int)o3_toUse;
+		float I_lo = -1;
+		float I_hi = -1;
+		float BP_lo = -1;
+		float BP_hi = -1;
+		if(O3>=0&&O3<=59)
+		{
+			I_lo=0; I_hi=50;
+			BP_lo=0; BP_hi=59;
+		}
+		else if (O3>=60&&O3<=75)
+		{
+			I_lo=51; I_hi=100;
+			BP_lo=60; BP_hi=75;
+		}
+		else if (O3>=76&&O3<=95)
+		{
+			I_lo=101; I_hi=150;
+			BP_lo=76; BP_hi=95;
+		}
+		else if (O3>=96&&O3<=115)
+		{
+			I_lo=151; I_hi=200;
+			BP_lo=96; BP_hi=115;
+		}
+		else if (O3>=116&&O3<=374)
+		{
+			I_lo=201; I_hi=300;
+			BP_lo=116; BP_hi=374;
+		}
+		else if (O3>=375)	//Calculate this with 1hr O3 only?
+		{
+			I_lo=301; I_hi=500;
+			BP_lo=375; BP_hi=604;
+		}
+		else	//SHOULDN'T GET HERE!!!
+		{
+			Log.d(DEBUG_TAG, "AQI error in values for O3!");
+		}
+		aqiO3 = (int)(((I_hi-I_lo)/(BP_hi-BP_lo))*(o3_toUse-BP_lo)+I_lo);
+
+		//Values for breakpoints taken 10/27 from http://www3.epa.gov/airquality/particlepollution/2012/decfsstandards.pdf
+		//Uses 24hr, unless AQI=100-300, then use max of both, if AQI>300, use just 1hr
+		int aqiPM25 = -1;
+		int PM25 = (int)pm25_toUse;
+		I_lo = -1;
+		I_hi = -1;
+		BP_lo = -1;
+		BP_hi = -1;
+		if(PM25>=0&&PM25<=12.0f)
+		{
+			I_lo=0; I_hi=50;
+			BP_lo=0; BP_hi=12.0f;
+		}
+		else if (PM25>12.0f&&PM25<=35.4f)
+		{
+			I_lo=51; I_hi=100;
+			BP_lo=12.1f; BP_hi=35.4f;
+		}
+		else if (PM25>35.4f&&PM25<=55.4f)
+		{
+			I_lo=101; I_hi=150;
+			BP_lo=35.5f; BP_hi=55.4f;
+		}
+		else if (PM25>55.4f&&PM25<=150.4f)
+		{
+			I_lo=151; I_hi=200;
+			BP_lo=55.5f; BP_hi=150.4f;
+		}
+		else if (PM25>150.4f&&PM25<=250.4f)
+		{
+			I_lo=201; I_hi=300;
+			BP_lo=150.5f; BP_hi=250.4f;
+		}
+		else if (PM25>250.4f)
+		{
+			I_lo=301; I_hi=500;
+			BP_lo=250.5f; BP_hi=500.4f;
+		}
+		else	//SHOULDN'T GET HERE!!!
+		{
+			Log.d(DEBUG_TAG, "AQI error in values for PM25!");
+		}
+		aqiPM25 = (int)(((I_hi-I_lo)/(BP_hi-BP_lo))*(pm25_toUse-BP_lo)+I_lo);
+
+
+
+		aqi=Math.max(aqiO3, aqiPM25);
+		return aqi;
 	}
 
 

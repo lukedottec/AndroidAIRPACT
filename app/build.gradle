@@ -4,6 +4,10 @@ android {
     compileSdkVersion 21
     buildToolsVersion "21.1.2"
 
+    packagingOptions {
+        exclude 'LICENSE.txt'
+    }
+
     defaultConfig {
         applicationId "wsu_airpact_project.airpact_demo"
         minSdkVersion 15
@@ -18,9 +22,15 @@ android {
         }
     }
 }
+configurations.all {
+    resolutionStrategy.force 'com.android.support:support-annotations:22.1.0'
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'com.google.android.gms:play-services:7.0.0'
+    androidTestCompile 'com.android.support.test:runner:0.4'
+    androidTestCompile 'com.android.support.test:rules:0.4'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
 }

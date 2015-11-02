@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -29,6 +30,8 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -55,6 +58,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -62,7 +66,8 @@ import java.util.Locale;
 
 public class TabActivity extends ActionBarActivity implements ActionBar.TabListener, OnMapReadyCallback,
 		GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, AdapterView.OnItemSelectedListener
-		,TooFarDialog.TooFarDialogListener, GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener
+		,TooFarDialog.TooFarDialogListener, GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener,
+		DrawerLayout.DrawerListener
 {
 	//Map tab
 	protected GoogleMap mainMap = null;
@@ -80,6 +85,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected int maxHours = 24;
 	//protected Bitmap bitmap;
 	protected Bitmap[] bitmapsO3;
+	protected Bitmap[] bitmapsPM25;
+	public String overlayType = "Ozone";
 	public AnimationThread animThread = null;
 	protected boolean animThreadHasStarted = false;
 	public String pinMode = "All";
@@ -97,13 +104,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected Double latitude;
 	protected Double longitude;
 	protected Spinner dropDown;
+	protected boolean showingForecast = false;
 
 	public Site currentSite;
+	public static TextView aqiTextView;
 	public static TextView o3TextView;
 	public static TextView pm25TextView;
 	public static TextView siteTextView;
 	public static TextView farTextView;
 	public static Button farButton;
+	private int startingHour = -12;
 
 	/**
 	 * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -193,6 +203,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		//*/
 
 		bitmapsO3 = new Bitmap[48];
+		bitmapsPM25 = new Bitmap[48];
 		//for(int i=0; i<48; i++)
 		//	bitmapsO3[i] = null;
 	}
@@ -246,8 +257,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			else Log.d("Drawer", "Found the drawer!");
 			if(dl!=null)
 			{
+				//Also need to find its listview
 				navDrawer = dl;
 				navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+				navDrawer.setDrawerListener(this);
 			}
 
 		}//*/
@@ -257,9 +270,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			//Globals.tabActivity = this;
 			latitude=0.0;
 			longitude=0.0;
-			o3TextView = (TextView) findViewById(R.id.textViewOzoneLabel);
-			pm25TextView = (TextView) findViewById(R.id.textViewPM2_5Label);
-			siteTextView = (TextView) findViewById(R.id.textViewSiteLabel);
+			//aqiTextView = (TextView) findViewById(R.id.textViewAQIValue);
+			//o3TextView = (TextView) findViewById(R.id.textViewOzoneLabel);
+			//pm25TextView = (TextView) findViewById(R.id.textViewPM2_5Label);
+			//siteTextView = (TextView) findViewById(R.id.textViewSiteLabel);
 			//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
 			//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
 			dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
@@ -284,6 +298,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			Log.d(TAG, "buildingGoogleApiClient");
 			buildGoogleApiClient();
 			mainFound=true;
+
+
+
+
 		}
 	}
 
@@ -494,8 +512,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		setSiteMarkers(siteUsing, map);
 
 		LatLngBounds bounds = new LatLngBounds(
-				new LatLng(39.79, -125.87),
-				new LatLng(49.74, -111.35));
+				new LatLng(39.78939, -125.9197),				//39.79, -125.87
+				new LatLng(49.83574, -109.5843));				//49.74, -111.35
 		goo = new GroundOverlayOptions()
 				.image(BitmapDescriptorFactory.fromResource(R.mipmap.ic_information))
 				.transparency(.5f)
@@ -503,13 +521,14 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 		//overlay = map.addGroundOverlay(goo);
 		Log.d("ImageStuff", "Calling setImageOverlay(null)");
-		setImageOverlay(-1);
+		setImageOverlay(" ", -1);
 		Log.d("ImageStuff", "Calling LoadImage().execute");
+		overlayType = "Ozone";
 		for(int i=0; i<maxHours; i++)
 		{
 			LoadImage li = new LoadImage();
-			li.setValues("Ozone", i);
-			li.execute(getOverlayURL("Ozone", i));
+			li.setValues(overlayType, i);
+			li.execute(getOverlayURL(overlayType, i));
 		}
 		//new LoadImage().execute(url);
 	}
@@ -517,12 +536,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	public String getOverlayURL(String type, int hourDelta)
 	{
 		Calendar c = Calendar.getInstance();
-		c.add(Calendar.HOUR, hourDelta);
+		c.add(Calendar.HOUR, hourDelta-10);
 		String url = null;
 		if(type.equals("Ozone"))
 			url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
 					c.get(Calendar.YEAR)+"/"+c.get(Calendar.YEAR)+"_"+addZero(c.get(Calendar.MONTH)+1)+"_"+addZero(c.get(Calendar.DAY_OF_MONTH))+
 					"/airpact4_08hrO3_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
+		if(type.equals("PM25"))
+			url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
+					c.get(Calendar.YEAR)+"/"+c.get(Calendar.YEAR)+"_"+addZero(c.get(Calendar.MONTH)+1)+"_"+addZero(c.get(Calendar.DAY_OF_MONTH))+
+					"/airpact4_24hrPM25_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
 		Log.d("ImageStuff", "     with \""+url+"\"");
 		//new LoadImage().execute("http://www.lar.wsu.edu/airpact/gmap/images/anim/species/2015/2015_10_02/airpact4_08hrO3_2015100215.gif");
 		return url;
@@ -542,7 +565,21 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			bitmapsO3[hourDelta] = b;
 			if(hourDelta == 0)
 			{
-				setImageOverlay(0);
+				setImageOverlay(type, 0);
+				if(animThread==null)
+				{
+					animThread = new AnimationThread();
+					animThread.start();
+					animThreadHasStarted = true;
+				}
+			}
+		}
+		if (type.equals("PM25"))
+		{
+			bitmapsPM25[hourDelta] = b;
+			if(hourDelta == 0)
+			{
+				setImageOverlay(type, 0);
 				if(animThread==null)
 				{
 					animThread = new AnimationThread();
@@ -553,40 +590,84 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 	}
 
-	public void advanceOverlay()
+	public void advanceOverlay(String type)
 	{
 		int nextHour = hourShown+1;
 		if(nextHour >= maxHours)
 			nextHour = 0;
-		if(bitmapsO3[nextHour]==null)
+		if(type.equals("Ozone"))
 		{
-			Log.d("MapThreading", "The next image #"+nextHour+" is null");
+			if (bitmapsO3[nextHour] == null)
+			{
+				Log.d("MapThreading", "The next image #" + nextHour + " is null");
+				hourShown = -1;
+				if(bitmapsO3[0]!=null)
+				{
+					setImageOverlay(type, 0);
+					hourShown = 0;
+					Log.d("MapThreading", "Set next image #" + nextHour);
+				}
+			} else
+			{
+				setImageOverlay(type, nextHour);
+				hourShown = nextHour;
+				Log.d("MapThreading", "Set next image #" + nextHour);
+			}
 		}
-		else
+		if(type.equals("PM25"))
 		{
-			setImageOverlay(nextHour);
-			hourShown = nextHour;
-			Log.d("MapThreading", "Set next image #"+nextHour);
+			if (bitmapsPM25[nextHour] == null)
+			{
+				Log.d("MapThreading", "The next image #" + nextHour + " is null");
+				hourShown = -1;
+				if(bitmapsPM25[0]!=null)
+				{
+					setImageOverlay(type, 0);
+					hourShown = 0;
+					Log.d("MapThreading", "Set next image #" + nextHour);
+				}
+			} else
+			{
+				setImageOverlay(type, nextHour);
+				hourShown = nextHour;
+				Log.d("MapThreading", "Set next image #" + nextHour);
+			}
 		}
 	}
 
-	public void setImageOverlay(int hourDelta)
+	public void setImageOverlay(String type, int hourDelta)
 	{
 		if(hourDelta==-1) return;
 		Log.d("ImageStuff", "Setting Image overlay");
 		if(goo!=null)
 		{
-			if(bitmapsO3[hourDelta]!=null)
+			if (type.equals("Ozone"))
 			{
-				if(overlay!=null)
-					overlay.remove();
-				goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsO3[hourDelta]));
-				overlay = mainMap.addGroundOverlay(goo);
-				//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
+				if (bitmapsO3[hourDelta] != null)
+				{
+					if (overlay != null)
+						overlay.remove();
+					goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsO3[hourDelta]));
+					overlay = mainMap.addGroundOverlay(goo);
+					//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
+				} else
+				{
+					Log.d("ImageStuff", "b==null");
+				}
 			}
-			else
+			if (type.equals("PM25"))
 			{
-				Log.d("ImageStuff", "b==null");
+				if (bitmapsPM25[hourDelta] != null)
+				{
+					if (overlay != null)
+						overlay.remove();
+					goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsPM25[hourDelta]));
+					overlay = mainMap.addGroundOverlay(goo);
+					//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
+				} else
+				{
+					Log.d("ImageStuff", "b==null");
+				}
 			}
 		}
 		else
@@ -617,7 +698,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 				{
 					public void run()
 					{
-						advanceOverlay();
+						advanceOverlay(overlayType);
 					}
 				});
 			}
@@ -667,7 +748,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			{
 				//pDialog.dismiss();
 				Log.d("ImageStuff", "LoadImage: image==null with hour "+hourDelta);
-				Toast.makeText(TabActivity.this, "Overlay image not found for hour "+hourDelta, Toast.LENGTH_SHORT).show();
+				//Toast.makeText(TabActivity.this, "Overlay image not found for hour "+hourDelta, Toast.LENGTH_SHORT).show();
 			}
 		}
 	}
@@ -711,6 +792,15 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		if(m!=null) m.showInfoWindow();
 		Log.d("TabActivityTag", "Updated site marker for "+s.Name);
 	}
+
+	public void onDrawerClosed(View drawer)
+	{
+		Log.d("Drawer", "Drawer closed, locking...");
+		navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+	}
+	public void onDrawerOpened(View drawer) { }
+	public void onDrawerSlide(View drawer, float offset) { }
+	public void onDrawerStateChanged(int newstate) { }
 
 
 	//Main Tab
@@ -808,6 +898,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 	public void setMainLabels(Site s)
 	{
+		if(aqiTextView==null) { Log.e("AQITextView", "AQITextView is null..."); }
+		int aqi = s.getAQI(0, 0);
+		aqiTextView.setText(""+aqi);
+		if	   (aqi<=50)	aqiTextView.setTextColor(Color.rgb(0,160,0));		//0 228 0		Green
+		else if(aqi<=100)	aqiTextView.setTextColor(Color.rgb(220,220,0));		//255 255 0		Yellow
+		else if(aqi<=150)	aqiTextView.setTextColor(Color.rgb(255,126,0));		//255 126 0		Orange
+		else if(aqi<=200)	aqiTextView.setTextColor(Color.rgb(220,0,0));		//255 0 0		Red
+		else if(aqi<=300)	aqiTextView.setTextColor(Color.rgb(180,0,90));		//153 0 76		Purple
+		else if(aqi<=500)	aqiTextView.setTextColor(Color.rgb(126,0,35));		//126 0 35		Maroon
+		else				aqiTextView.setTextColor(Color.rgb(0,0,0));			//Shouldn't get here!!! (Black)
 		o3TextView.setText("Ozone: "+s.OZONEavg_ap);
 		pm25TextView.setText("PM2.5: "+s.PM25avg_ap);
 		siteTextView.setText("Site: "+s.Name);
@@ -821,6 +921,41 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			farTextView.setVisibility(View.INVISIBLE);
 			farButton.setVisibility(View.INVISIBLE);
 		}
+
+
+
+		//Forecast view
+		ListView lv = (ListView)findViewById(R.id.listViewForecast);
+		Calendar c = Calendar.getInstance();
+		c.add(Calendar.HOUR_OF_DAY, startingHour);
+		ArrayList<String> strings1 = new ArrayList<>();
+		strings1.add("Hour     AQI    Ozone     PM2.5");
+		for(int i=0; i<36; i++)
+		{
+			int hour = c.get(Calendar.HOUR);
+			String hourString = ""+hour;
+			if(hour==0) hourString = "12";
+			int ampm=c.get(Calendar.AM_PM);
+			String ampmString = "AM";
+			if(ampm>0) ampmString = "PM";
+			int hourlyAQI = s.getAQI(i);
+			String hourlyAQIString = ""+hourlyAQI;
+			if(hourlyAQI<=0) hourlyAQIString = "-";
+			float o3 = s.OZONE8hr_ap[i];
+			String o3String = ""+o3;
+			if(o3<=0) o3String = "-";
+			float pm25 = s.PM258hr_ap[i];
+			String pm25String = ""+pm25;
+			if(pm25<=0) pm25String = "-";
+
+			//strings1.add(""+hourString+ampmString+"      "+hourlyAQIString+"       "+o3String+"        "+pm25String);
+			String str = String.format("%-10s %-10s %-10s %-10s",hourString+ampmString, hourlyAQIString, o3String, pm25String);
+			strings1.add(str);
+			c.add(Calendar.HOUR_OF_DAY, 1);
+		}
+		String[] strings = new String[strings1.size()];
+		strings = strings1.toArray(strings);
+		lv.setAdapter(new ArrayAdapter(this, android.R.layout.simple_list_item_1, strings));
 	}
 
 	public void findCitysLatLon(View view)
@@ -861,8 +996,9 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLocation, zoomLevel));*/
 
 
-		togglePinMode(view);
 		//updateAllSites(view);
+		//togglePinMode(view);
+		switchForecastMode(view);
 	}
 
 	public void updateAllSites(View view)
@@ -900,6 +1036,26 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		Log.d("Open navdrawer", "Open navdrawer called");
 		navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN);
 		navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+	}
+
+	public void switchForecastMode(View view)
+	{
+		if(!showingForecast)
+		{
+			FrameLayout fl = (FrameLayout)findViewById(R.id.layoutCurrent);
+			fl.setVisibility(View.INVISIBLE);
+			ListView lv = (ListView)findViewById(R.id.listViewForecast);
+			lv.setVisibility(View.VISIBLE);
+			showingForecast=true;
+		}
+		else
+		{
+			FrameLayout fl = (FrameLayout)findViewById(R.id.layoutCurrent);
+			fl.setVisibility(View.VISIBLE);
+			ListView lv = (ListView)findViewById(R.id.listViewForecast);
+			lv.setVisibility(View.INVISIBLE);
+			showingForecast=false;
+		}
 	}
 
 
@@ -946,6 +1102,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			catch (InterruptedException e)
 			{
 				Log.d(TAG, "InterruptedException trying to animThread.join()");
+				animThread=null;
 			}
 		}
 	}
@@ -1045,6 +1202,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 
 
+		aqiTextView = mainTabFragment.aqiTextView;
 		o3TextView = mainTabFragment.o3TextView;
 		pm25TextView = mainTabFragment.pm25TextView;
 		siteTextView = mainTabFragment.siteTextView;
