@@ -1,7 +1,6 @@
 package wsu_airpact_project.airpact_demo;
 
 import android.test.ActivityInstrumentationTestCase2;
-import android.widget.EditText;
 
 import java.util.Calendar;
 
@@ -11,7 +10,7 @@ import java.util.Calendar;
 public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivity>
 {
 	private TabActivity tabActivity;
-	private EditText editText;
+	//private EditText editText;
 
 	public TabActivityTest()
 	{
@@ -23,15 +22,88 @@ public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivit
 	{
 		super.setUp();
 		tabActivity = getActivity();
-		editText = (EditText) tabActivity.findViewById(R.id.editText);
+		//editText = (EditText) tabActivity.findViewById(R.id.editText);
 	}
-
+/*
 	public void testPreconditions()
 	{
 		assertNotNull("tabActivity is null", tabActivity);
 		assertNotNull("editText is null", editText);
-	}
+	}//*/
+/*
+	public void testGetClosestSite_FromLatLong1()
+	{
+		double lat = 46.731367;
+		double lon = -117.177109;
+		SiteList sl = Globals.siteList;
+		Site closest = sl.getClosest(lat, lon);
+		assertNotNull("Site was null!", closest);
+		assertEquals("Wrong site name:", "Pullman-Dexter Ave", closest.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromLatLong2()
+	{
+		double lat = 47.024892;
+		double lon = -120.550386;
+		SiteList sl = Globals.siteList;
+		Site closest = sl.getClosest(lat, lon);
+		assertNotNull("Site was null!", closest);
+		assertEquals("Wrong site name:", "Ellensburg-Ruby St", closest.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromLatLong3()
+	{
+		double lat = 48.315640;
+		double lon = -120.675037;
+		SiteList sl = Globals.siteList;
+		Site closest = sl.getClosest(lat, lon);
+		assertNotNull("Site was null!", closest);
+		assertEquals("Wrong site name:", "Winthrop-Chewuch Rd", closest.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromLatLong4()
+	{
+		double lat = 0;
+		double lon = 0;
+		SiteList sl = Globals.siteList;
+		Site closest = sl.getClosest(lat, lon);
+		assertNotNull("Site was null!", closest);
+		assertEquals("Wrong site name:", "Great Falls Overlook Park", closest.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromName1()
+	{
+		String cityName = "Boise, ID";
+		Site s = tabActivity.findCitynamesSite(cityName);
+		assertNotNull("Site was null!", s);
+		assertEquals("Wrong site name:", "White Pine", s.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromName2()
+	{
+		String cityName = "Vancouver, WA";
+		Site s = tabActivity.findCitynamesSite(cityName);
+		assertNotNull("Site was null!", s);
+		assertEquals("Wrong site name:", "Vancouver-NE 84th Ave", s.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromName3()
+	{
+		String cityName = "Othello, WA";
+		Site s = tabActivity.findCitynamesSite(cityName);
+		assertNotNull("Site was null!", s);
+		assertEquals("Wrong site name:", "Mesa-Pepoit Way", s.Name);
+	}//*/
+/*
+	public void testGetClosestSite_FromName4()
+	{
+		String cityName = "San Francisco, CA";
+		Site s = tabActivity.findCitynamesSite(cityName);
+		assertNotNull("Site was null!", s);
+		assertEquals("Wrong site name:", "Tuscan Butte (Seasonal)", s.Name);
+	}//*/
 
+/*
 	public void testTabActivity_EditTextLabel()
 	{
 		final String expected = "Boise, ID";
@@ -116,7 +188,7 @@ public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivit
 				"2015-10-21 21:00:00,\"000100119\",7.8,12.3,NA,NA\n" +
 				"2015-10-21 22:00:00,\"000100119\",6.9,14.2,NA,NA\n" +
 				"2015-10-21 23:00:00,\"000100119\",8.3,16.8,NA,NA\n";
-		Calendar current = Calendar.getInstance();
+		Calendar current = Globals.getTimeOriginal();
 		current.set(Calendar.HOUR_OF_DAY, 8);
 		current.set(Calendar.DAY_OF_MONTH, 20);
 		current.set(Calendar.MONTH, 10-1);
@@ -153,7 +225,7 @@ public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivit
 				"2015-10-19 07:00:00,\"000100119\",0.6,42.6,4,NA\n" +
 				"2015-10-19 08:00:00,\"000100119\",1.1,44.4,4,NA\n" +
 				"2015-10-19 09:00:00,\"000100119\",2,35.6,2,NA\n";
-		Calendar current = Calendar.getInstance();
+		Calendar current = Globals.getTimeOriginal();
 		current.set(Calendar.HOUR_OF_DAY, 0);	current.set(Calendar.DAY_OF_MONTH, 19);	current.set(Calendar.MONTH, 10-1);	current.set(Calendar.YEAR, 2015);
 
 		site.parseData(data, current);
@@ -175,7 +247,7 @@ public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivit
 		Site site = new Site("SiteTest", "123456789", 2, 3, true, true);
 
 		String data = "\"DateTime\",\"AQSID\",\"O3_mod\",\"PM2.5_mod\",\"O3_obs\",\"PM2.5_obs\"\n";
-		Calendar current = Calendar.getInstance();
+		Calendar current = Globals.getTimeOriginal();
 		current.set(Calendar.HOUR_OF_DAY, 0);	current.set(Calendar.DAY_OF_MONTH, 19);	current.set(Calendar.MONTH, 10-1);	current.set(Calendar.YEAR, 2015);
 
 		site.parseData(data, current);
@@ -197,7 +269,7 @@ public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivit
 		Site site = new Site("SiteTest", "123456789", 2, 3, true, true);
 
 		String data = "";
-		Calendar current = Calendar.getInstance();
+		Calendar current = Globals.getTimeOriginal();
 		current.set(Calendar.HOUR_OF_DAY, 0);	current.set(Calendar.DAY_OF_MONTH, 19);	current.set(Calendar.MONTH, 10-1);	current.set(Calendar.YEAR, 2015);
 
 		site.parseData(data, current);
@@ -293,5 +365,6 @@ public class TabActivityTest extends ActivityInstrumentationTestCase2<TabActivit
 		ParseData pd = new ParseData(data, 20, 20, 10, 2015);
 		assertEquals("Something was wrong", true, pd.checkValsAtRelativeHour(0, 7f, 22.1f, 4f, -1f));
 		assertEquals("Something was wrong", true, pd.checkValsAtRelativeHour(20, 20.7f, 11.5f, -1f, -1f));
+		assertEquals("Something was wrong", true, pd.checkAfterVals());
 	}//*/
 }

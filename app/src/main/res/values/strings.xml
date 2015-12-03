@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">AIRPACT_Demo</string>
+    <string name="app_name">AIRPACT Air Quality</string>
 
     <string name="hello_world">Hello AIRPACT!</string>
     <string name="action_settings">Settings</string>
-    <string name="no_location_detected">no location detected...</string>
+    <string name="no_location_detected">No location detected...</string>
     <string name="title_activity_news">NewsActivity</string>
     <string name="news_1">This is a news article of interest</string>
     <string name="news_2">This is another, also important article</string>
@@ -18,8 +18,7 @@
 
     <string name="title_section1">Main Page</string>
     <string name="title_section2">Map</string>
-    <string name="title_section3">News</string>
-    <string name="title_section4">Help</string>
+    <string name="title_section3">Help</string>
     <string name="title_activity_web">WebActivity</string>
     <string name="title_activity_main">MainActivity</string>
 </resources>

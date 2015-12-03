@@ -1,56 +1,151 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 xmlns:tools="http://schemas.android.com/tools"
+                android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingLeft="@dimen/activity_horizontal_margin"
                 android:paddingRight="@dimen/activity_horizontal_margin"
                 android:paddingTop="@dimen/activity_vertical_margin"
                 android:paddingBottom="@dimen/activity_vertical_margin"
+                android:background="#bbbbbb"
+                android:id="@+id/MainTabFragmentID"
                 tools:context="wsu_airpact_project.airpact_demo.MainTabFragment$MainTabFragment">
 
-    <Button
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="60dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:gravity="center"
+        android:id="@+id/LayoutSearch">
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:layout_width="0px"
+            android:layout_height="0px"
+            android:id="@+id/focusDummy"/>
+
+        <RelativeLayout
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="right"
+            android:id="@+id/LayoutSearchBar">
+            <EditText
+                android:layout_width="225dp"
+                android:layout_height="40dp"
+                android:id="@+id/editTextCitySearch"
+                android:text=""
+                android:hint="City, ST"
+                />
+            <Button
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:id="@+id/buttonClearSearch"
+                android:background="@drawable/x"
+                android:layout_marginTop="7dp"
+                android:layout_marginLeft="200dp"
+                android:onClick="clearSearch"/>
+        </RelativeLayout>
+
+        <Button
+            android:layout_width="70dp"
+            android:layout_height="62dp"
+            android:id="@+id/buttonSearch"
+            android:background="@drawable/ic_search"
+            android:layout_gravity="end"
+            android:onClick="searchCityName"/>
+
+    </LinearLayout>
+
+    <Spinner
+        android:layout_width="256dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/spinnerinmaintab"
+        android:layout_marginTop="10dp"
+        android:layout_gravity="center_horizontal|top"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="Exit"
-        android:id="@+id/buttonExit"
-        android:layout_centerHorizontal="true"
-        android:onClick="exitClicked"
-        android:nestedScrollingEnabled="false"
-        android:layout_marginTop="400dp"/>
+        android:gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:id="@+id/LayoutCurrentForecastButtons">
 
-    <FrameLayout
+        <ToggleButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Current"
+            android:id="@+id/toggleButtonCurrent"
+            android:onClick="currentClicked"
+            android:textOn="Current"
+            android:textOff="Current"/>
+
+        <ToggleButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Forecast"
+            android:id="@+id/toggleButtonForecast"
+            android:onClick="forecastClicked"
+            android:textOn="Forecast"
+            android:textOff="Forecast"/>
+    </LinearLayout>
+
+    <RelativeLayout
         android:layout_width="fill_parent"
-        android:layout_height="250dp"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:id="@+id/layoutTop">
+        android:layout_height="fill_parent"
+        android:id="@+id/LayoutMain">
 
-        <FrameLayout
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:id="@+id/layoutCurrent"
-            android:visibility="visible">
+            android:layout_marginTop="20dp"
+            android:id="@+id/LayoutCurrent">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="AQI Index:"
-                android:id="@+id/textViewAQILabel"
-                android:layout_gravity="left|center_vertical"
-                android:layout_marginLeft="20dp"
-                android:layout_marginBottom="60dp" />
+                android:id="@+id/LayoutAQI">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="4"
-                android:id="@+id/textViewAQIValueInTab"
-                android:layout_gravity="center|left"
-                android:layout_marginLeft="130dp"
-                android:layout_marginBottom="60dp"
-                android:textColor="#ff648000" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:text="AQI:"
+                    android:id="@+id/textViewAQILabel"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginStart="20dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:id="@+id/textViewAQIValueInTab"
+                    android:layout_gravity="center|start"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginStart="20dp"
+                    android:textColor="#ff648000" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginStart="10dp"
+                    android:text="\?"
+                    android:textColor="#1144FF"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:onClick="helpQuestionmarkClicked"
+                    android:id="@+id/textViewHelpButton"/>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -58,9 +153,10 @@
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="Ozone:"
                 android:id="@+id/textViewOzoneLabelInTab"
-                android:layout_gravity="left|center_vertical"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginTop="20dp"
                 android:layout_marginLeft="20dp"
-                android:layout_marginBottom="20dp"/>
+                android:layout_marginStart="20dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -68,9 +164,10 @@
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="PM2.5:"
                 android:id="@+id/textViewPM2.5LabelInTab"
-                android:layout_gravity="left|center_vertical"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginTop="20dp"
                 android:layout_marginLeft="20dp"
-                android:layout_marginTop="20dp"/>
+                android:layout_marginStart="20dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -78,61 +175,61 @@
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="Site:"
                 android:id="@+id/textViewSiteLabelInTab"
-                android:layout_gravity="left|center_vertical"
-                android:layout_marginTop="60dp"
-                android:layout_marginLeft="20dp" />
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginTop="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginStart="20dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="Data from this AIRNOW site may be inaccurate for your location."
+                android:gravity="center"
                 android:id="@+id/textViewFarInTab"
-                android:layout_gravity="left|center_vertical"
-                android:layout_marginTop="100dp"
-                android:layout_marginLeft="20dp"
-                android:textSize="14dp"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginTop="20dp"
+                android:textSize="14sp"
                 android:textStyle="italic"
+                android:visibility="invisible"/>
+
+            <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/ic_information"
+                android:id="@+id/buttonTooFarInfo"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="10dp"
+                android:visibility="invisible"
+                android:onClick="openFarInfo"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:id="@+id/LayoutForecast"
+            android:visibility="invisible">
+
+            <include layout="@layout/forecast_view_item"/>
+
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/listViewForecast"
+                android:fastScrollEnabled="true"
+                android:fastScrollAlwaysVisible="true"
                 android:visibility="visible"/>
+        </LinearLayout>
+    </RelativeLayout>
 
-        </FrameLayout>
-
-        <ListView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:id="@+id/listViewForecast"
-            android:fastScrollEnabled="true"
-            android:fastScrollAlwaysVisible="true"
-            android:visibility="invisible"/>
-
-<!--<FrameLayout
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:id="@+id/layoutForecastFrame">
-
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="New Text"
-                    android:id="@+id/textView3"
-                    android:layout_margin="10dp"
-                    android:visibility="invisible"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="New Text2"
-                    android:id="@+id/textView4"
-                    android:visibility="invisible"/>
-            </FrameLayout>-->
-
-        <Spinner
-            android:layout_width="256dp"
-            android:layout_height="wrap_content"
-            android:id="@+id/spinnerinmaintab"
-            android:layout_gravity="center_horizontal|top"/>
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/nonexistent">
 
         <Button
             style="?android:attr/buttonStyleSmall"
@@ -140,7 +237,6 @@
             android:layout_height="wrap_content"
             android:text="Load"
             android:id="@+id/button"
-            android:layout_gravity="left|center_vertical"
             android:onClick="loadButtonClicked"
             android:visibility="invisible"/>
 
@@ -150,7 +246,6 @@
             android:layout_height="wrap_content"
             android:text="Save"
             android:id="@+id/button2"
-            android:layout_gravity="left|bottom"
             android:onClick="saveButtonClicked"
             android:visibility="invisible"/>
 
@@ -158,64 +253,50 @@
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="View"
-            android:id="@+id/buttonGoToMap"
-            android:layout_gravity="right|center_vertical"
-            android:onClick="goToMap"/>
+            android:text="Overlay"
+            android:id="@+id/buttonSwapO3PMOverlay"
+            android:layout_marginTop="50dp"
+            android:visibility="gone"
+            android:onClick="swapO3PMOverlay"/>
 
-    </FrameLayout>
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pins"
+            android:id="@+id/buttonChangePins"
+            android:layout_marginBottom="50dp"
+            android:onClick="togglePinMode"
+            android:visibility="gone"/>
 
-    <Button
-        android:layout_width="70dp"
-        android:layout_height="62dp"
-        android:id="@+id/buttonSearch"
-        android:drawableLeft="@mipmap/ic_search"
-        android:layout_marginTop="320dp"
-        android:layout_gravity="end"
-        android:onClick="findCitysLatLon"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Advanced Info"
+            android:id="@+id/buttonAdvancedInfo"
+            android:onClick="openAdvancedInfo"
+            android:visibility="gone"/>
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Exit"
+            android:id="@+id/buttonExit"
+            android:onClick="exitClicked"
+            android:layout_marginTop="400dp"
+            android:visibility="gone"/>
+    </LinearLayout>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Refresh Location"
         android:id="@+id/buttonGetCoords"
-        android:layout_centerHorizontal="true"
         android:onClick="getCoords"
+        android:visibility="invisible"
         android:layout_marginTop="300dp"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Advanced Info"
-        android:id="@+id/buttonAdvancedInfo"
-        android:layout_gravity="right|bottom"
-        android:onClick="openAdvancedInfo"
-        android:nestedScrollingEnabled="true"
-        android:layout_below="@+id/layoutTop"
-        android:layout_alignRight="@+id/layoutTop"
-        android:layout_alignEnd="@+id/layoutTop"/>
 
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-
-        android:background="@mipmap/ic_information"
-        android:id="@+id/buttonTooFarInfo"
-        android:layout_toStartOf="@+id/buttonAdvancedInfo"
-        android:layout_toLeftOf="@+id/buttonAdvancedInfo"
-        android:layout_alignTop="@+id/buttonAdvancedInfo"
-        android:onClick="openFarInfo"/>
     <!--android:drawableLeft="@mipmap/ic_information"-->
 
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/editText"
-        android:layout_alignBottom="@+id/buttonTooFarInfo"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:text="Boise, ID"
-        />
-
-</RelativeLayout>
+</LinearLayout>

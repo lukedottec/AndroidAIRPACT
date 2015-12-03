@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -26,15 +27,21 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -50,6 +57,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -67,11 +75,13 @@ import java.util.Locale;
 public class TabActivity extends ActionBarActivity implements ActionBar.TabListener, OnMapReadyCallback,
 		GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, AdapterView.OnItemSelectedListener
 		,TooFarDialog.TooFarDialogListener, GoogleMap.OnInfoWindowClickListener, GoogleMap.OnMarkerClickListener,
-		DrawerLayout.DrawerListener
+		DrawerLayout.DrawerListener, ListView.OnItemClickListener
 {
+	public int startingHour = -12;
+
 	//Map tab
 	protected GoogleMap mainMap = null;
-	private static int zoomLevel = 10;
+	//private static int zoomLevel = 10;
 	protected Double latitudeMap;
 	protected Double longitudeMap;
 	protected boolean mapFound = false;
@@ -81,16 +91,21 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected GroundOverlayOptions goo = null;
 	protected GroundOverlay overlay = null;
 	//protected ProgressDialog pDialog;
-	protected int hourShown;
+	protected int hourShown = startingHour-1;
 	protected int maxHours = 24;
 	//protected Bitmap bitmap;
 	protected Bitmap[] bitmapsO3;
 	protected Bitmap[] bitmapsPM25;
+	protected boolean haveDownloadedAllPics = false;
 	public String overlayType = "Ozone";
 	public AnimationThread animThread = null;
 	protected boolean animThreadHasStarted = false;
+	public boolean playing = false;
 	public String pinMode = "All";
+
+	//NavDrawer Stuff
 	protected DrawerLayout navDrawer = null;
+	public Button[] navButtons;
 
 
 	//Main tab
@@ -105,15 +120,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected Double longitude;
 	protected Spinner dropDown;
 	protected boolean showingForecast = false;
+	protected ListView lv;
+	public GeocoderThread citySearchThread = null;
 
 	public Site currentSite;
 	public static TextView aqiTextView;
 	public static TextView o3TextView;
 	public static TextView pm25TextView;
-	public static TextView siteTextView;
+	public static TextView hourTextView;
 	public static TextView farTextView;
 	public static Button farButton;
-	private int startingHour = -12;
 
 	/**
 	 * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -134,7 +150,12 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+
+		//Log.e("CrashBug", "In TabActivity.onCreate()");
 		setContentView(R.layout.activity_tab);
+
+		//Prevents the keyboard from popping up nonstop
+		this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
 		// Set up the action bar.
 		final ActionBar actionBar = getSupportActionBar();
@@ -184,15 +205,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 		//Main Tab
 		Globals.tabActivity = this;
+		Globals.setTimeOriginal();
 		/*
 		Globals.tabActivity = this;
 		latitude=0.0;
 		longitude=0.0;
 		o3TextView = (TextView) findViewById(R.id.textViewOzoneLabel);
 		pm25TextView = (TextView) findViewById(R.id.textViewPM2_5Label);
-		siteTextView = (TextView) findViewById(R.id.textViewSiteLabel);
+		hourTextView = (TextView) findViewById(R.id.textViewSiteLabel);
 		//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
-		//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+		//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, hourTextView);
 		dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
 		if(!Globals.siteList.setDropdown(dropDown, this, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
 		{
@@ -245,6 +267,9 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		// the ViewPager.
 		mViewPager.setCurrentItem(tab.getPosition());
 
+		if(mainFound)
+			hideKeyboard();
+
 		int i = tab.getPosition();
 		if (i == 1 && !mapFound)
 		{
@@ -261,6 +286,26 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 				navDrawer = dl;
 				navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 				navDrawer.setDrawerListener(this);
+				ListView drawerList = (ListView) findViewById(R.id.left_drawer);
+
+				ArrayList<NavDrawerItem> navDrawerItems = new ArrayList<>();
+				navDrawerItems.add(new NavDrawerItem("AIRPACT Sites:", "Header"));
+				navDrawerItems.add(new NavDrawerItem("All Sites", "Radio"));
+				navDrawerItems.add(new NavDrawerItem("O3 Sites", "Radio"));
+				navDrawerItems.add(new NavDrawerItem("PM2.5 Sites", "Radio"));
+				navDrawerItems.add(new NavDrawerItem("No Sites", "Radio"));
+				navDrawerItems.add(new NavDrawerItem("Forecast Overlay:", "Header"));
+				navDrawerItems.add(new NavDrawerItem("O3 Overlay", "Radio"));
+				navDrawerItems.add(new NavDrawerItem("PM2.5 Overlay", "Radio"));
+				navDrawerItems.add(new NavDrawerItem("No Overlay", "Radio"));
+				//navDrawerItems.add(new NavDrawerItem("Sites", new CheckBox(this), "Checkbox"));
+				NavDrawerListAdapter adapter = new NavDrawerListAdapter(this, navDrawerItems);
+				drawerList.setAdapter(adapter);
+
+
+				//drawerList.setChoiceMode(ListView.CHOICE_MODE_NONE);
+				drawerList.setOnItemClickListener(this);
+				navButtons = new Button[navDrawerItems.size()];
 			}
 
 		}//*/
@@ -273,12 +318,12 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			//aqiTextView = (TextView) findViewById(R.id.textViewAQIValue);
 			//o3TextView = (TextView) findViewById(R.id.textViewOzoneLabel);
 			//pm25TextView = (TextView) findViewById(R.id.textViewPM2_5Label);
-			//siteTextView = (TextView) findViewById(R.id.textViewSiteLabel);
+			//hourTextView = (TextView) findViewById(R.id.textViewSiteLabel);
 			//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
-			//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+			//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, hourTextView);
 			dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
 			if(dropDown==null) Log.d(TAG, "dropDown==null");
-			mainTabFragment = mSectionsPagerAdapter.mtf;
+			//mainTabFragment = mSectionsPagerAdapter.mtf;
 			if(mainTabFragment!=null)
 			{
 				Log.d(TAG, "mainTabFragment!=null");
@@ -304,15 +349,14 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 		}
 	}
-
 	@Override
-	public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction)
-	{
-	}
-
+	public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) { }
 	@Override
-	public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction)
+	public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) { }
+
+	public void selectTab(int n)
 	{
+		mViewPager.setCurrentItem(n);
 	}
 
 	/**
@@ -342,7 +386,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 			dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
 			//if(dropDown==null) Log.d(TAG, "!!!dropDown==null");
-			mainTabFragment = mSectionsPagerAdapter.mtf;
+			//mainTabFragment = mSectionsPagerAdapter.mtf;
 			if(mainTabFragment!=null)
 			{
 				//Log.d(TAG, "!!!mainTabFragment!=null");
@@ -361,8 +405,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		@Override
 		public int getCount()
 		{
-			// Show 4 total pages.
-			return 4;
+			// Show 3 total pages.
+			return 3;
 		}
 
 		@Override
@@ -377,8 +421,6 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 					return getString(R.string.title_section2).toUpperCase(l);
 				case 2:
 					return getString(R.string.title_section3).toUpperCase(l);
-				case 3:
-					return getString(R.string.title_section4).toUpperCase(l);
 			}
 			return null;
 		}
@@ -412,9 +454,6 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 					fragment = new MapTabFragment();
 					break;
 				case 3:
-					fragment = new NewsTabFragment();
-					break;
-				case 4:
 					fragment = new HelpTabFragment();
 					break;
 
@@ -453,6 +492,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		map.setOnInfoWindowClickListener(this);
 		map.setOnMarkerClickListener(this);
 		mainMap=map;
+
+		PolylineOptions plo = drawAP4Boundary();
+		map.addPolyline(plo);
+
 		LatLng pullmanDefault = new LatLng(46.7338, -117.1673);
 		LatLng currentLocation;
 		//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
@@ -473,6 +516,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 
 		map.setMyLocationEnabled(true);
+		int zoomLevel = 10;
 		map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, zoomLevel));
 
 		if(!Globals.siteList.addToMap(map, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
@@ -484,6 +528,41 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			DialogFragment dialog2 = new CannotConnectDialog();
 			dialog2.show(getFragmentManager(), "couldNotConnect");
 		}
+	}
+
+	public PolylineOptions drawAP4Boundary()
+	{
+		PolylineOptions plo = new PolylineOptions();
+		plo.add(new LatLng(40.15336, -125.1509));
+		plo.add(new LatLng(40.19574, -123.8900));
+		plo.add(new LatLng(40.22295, -122.6276));
+		plo.add(new LatLng(40.23495, -121.3644));
+		plo.add(new LatLng(40.23173, -120.1011));
+		plo.add(new LatLng(40.21329, -118.8382));
+		plo.add(new LatLng(40.17966, -117.5764));
+		plo.add(new LatLng(40.13086, -116.3162));
+		plo.add(new LatLng(40.06693, -115.0584));
+		plo.add(new LatLng(39.98792, -113.8035));
+		plo.add(new LatLng(39.89389, -112.5522));
+		plo.add(new LatLng(39.78939, -111.3529));
+		plo.add(new LatLng(44.54784, -110.5424));
+		plo.add(new LatLng(49.30697, -109.5843));
+		plo.add(new LatLng(49.43092, -110.9990));
+		plo.add(new LatLng(49.54248, -112.4769));
+		plo.add(new LatLng(49.63625, -113.9607));
+		plo.add(new LatLng(49.71214, -115.4493));
+		plo.add(new LatLng(49.77009, -116.9418));
+		plo.add(new LatLng(49.81002, -118.4371));
+		plo.add(new LatLng(49.83192, -119.9342));
+		plo.add(new LatLng(49.83574, -121.4321));
+		plo.add(new LatLng(49.82149, -122.9296));
+		plo.add(new LatLng(49.78918, -124.4258));
+		plo.add(new LatLng(49.73885, -125.9197));
+		plo.add(new LatLng(44.94428, -125.5027));
+		plo.add(new LatLng(40.15336, -125.1509));
+		plo.width(10);
+		plo.color(Color.BLACK);
+		return plo;
 	}
 
 	public void setSiteMarkers(Site siteUsing, GoogleMap map)
@@ -515,28 +594,66 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 				new LatLng(39.78939, -125.9197),				//39.79, -125.87
 				new LatLng(49.83574, -109.5843));				//49.74, -111.35
 		goo = new GroundOverlayOptions()
-				.image(BitmapDescriptorFactory.fromResource(R.mipmap.ic_information))
+				.image(BitmapDescriptorFactory.fromResource(R.drawable.ic_information))
 				.transparency(.5f)
 				.positionFromBounds(bounds);
 
 		//overlay = map.addGroundOverlay(goo);
 		Log.d("ImageStuff", "Calling setImageOverlay(null)");
-		setImageOverlay(" ", -1);
+		setImageOverlay(" ", -100);
 		Log.d("ImageStuff", "Calling LoadImage().execute");
 		overlayType = "Ozone";
-		for(int i=0; i<maxHours; i++)
-		{
-			LoadImage li = new LoadImage();
-			li.setValues(overlayType, i);
-			li.execute(getOverlayURL(overlayType, i));
-		}
+		String oT;
+
+		oT = "Ozone";
+		LoadImage li = new LoadImage();
+		li.setValues(oT, startingHour);
+		li.execute(getOverlayURL(oT, startingHour));
+		oT = "PM25";
+		LoadImage li2 = new LoadImage();
+		li2.setValues(oT, startingHour);
+		li2.execute(getOverlayURL(oT, startingHour));
+
+		oT = "Ozone";
+		li = new LoadImage();
+		li.setValues(oT, 0);
+		li.execute(getOverlayURL(oT, 0));
+		oT = "PM25";
+		li2 = new LoadImage();
+		li2.setValues(oT, 0);
+		li2.execute(getOverlayURL(oT, 0));
 		//new LoadImage().execute(url);
+	}
+	public void downloadPicsForHour(int hourDelta)
+	{
+		String oT;
+		if(bitmapsO3[hourDelta-startingHour]==null)
+		{
+			oT = "Ozone";
+			LoadImage li = new LoadImage();
+			li.setValues(oT, hourDelta);
+			li.execute(getOverlayURL(oT, hourDelta));
+		}
+		if(bitmapsPM25[hourDelta-startingHour]==null)
+		{
+			oT = "PM25";
+			LoadImage li2 = new LoadImage();
+			li2.setValues(oT, hourDelta);
+			li2.execute(getOverlayURL(oT, hourDelta));
+		}
+	}
+	public void downloadRestOfPics()
+	{
+		for(int i=startingHour; i<startingHour + maxHours; i++)
+			downloadPicsForHour(i);
 	}
 
 	public String getOverlayURL(String type, int hourDelta)
 	{
-		Calendar c = Calendar.getInstance();
-		c.add(Calendar.HOUR, hourDelta-10);
+		Calendar c = Globals.getTimeOriginal();
+		int diff=0;
+		c.add(Calendar.HOUR, hourDelta-diff);
+
 		String url = null;
 		if(type.equals("Ozone"))
 			url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
@@ -545,7 +662,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		if(type.equals("PM25"))
 			url = "http://www.lar.wsu.edu/airpact/gmap/images/anim/species/"+
 					c.get(Calendar.YEAR)+"/"+c.get(Calendar.YEAR)+"_"+addZero(c.get(Calendar.MONTH)+1)+"_"+addZero(c.get(Calendar.DAY_OF_MONTH))+
-					"/airpact4_24hrPM25_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
+					"/airpact4_PM25_"+c.get(Calendar.YEAR)+addZero(c.get(Calendar.MONTH)+1)+addZero(c.get(Calendar.DAY_OF_MONTH))+addZero(c.get(Calendar.HOUR_OF_DAY))+".gif";
 		Log.d("ImageStuff", "     with \""+url+"\"");
 		//new LoadImage().execute("http://www.lar.wsu.edu/airpact/gmap/images/anim/species/2015/2015_10_02/airpact4_08hrO3_2015100215.gif");
 		return url;
@@ -562,10 +679,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	{
 		if (type.equals("Ozone"))
 		{
-			bitmapsO3[hourDelta] = b;
-			if(hourDelta == 0)
+			bitmapsO3[hourDelta-startingHour] = b;
+			if(b==null)
 			{
-				setImageOverlay(type, 0);
+				//if(hourDelta==startingHour) Toast.makeText(this, "Could not find the overlays for Ozone", Toast.LENGTH_LONG).show();
+				if(hourDelta==0) Toast.makeText(this, "Could not find the current overlay for Ozone", Toast.LENGTH_LONG).show();
+				return;
+			}
+			if(hourDelta == 0 && overlayType.equals(type))
+			{
+				setImageOverlay(type, hourDelta);
 				if(animThread==null)
 				{
 					animThread = new AnimationThread();
@@ -576,10 +699,16 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 		if (type.equals("PM25"))
 		{
-			bitmapsPM25[hourDelta] = b;
-			if(hourDelta == 0)
+			bitmapsPM25[hourDelta-startingHour] = b;
+			if(b==null)
 			{
-				setImageOverlay(type, 0);
+				//if(hourDelta==startingHour) Toast.makeText(this, "Could not find the overlays for PM2.5", Toast.LENGTH_LONG).show();
+				if(hourDelta==0) Toast.makeText(this, "Could not find the current overlay for PM2.5", Toast.LENGTH_LONG).show();
+				return;
+			}
+			if(hourDelta == startingHour && overlayType.equals(type))
+			{
+				setImageOverlay(type, hourDelta);
 				if(animThread==null)
 				{
 					animThread = new AnimationThread();
@@ -590,65 +719,105 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 	}
 
-	public void advanceOverlay(String type)
+	public void advanceOverlay(String type) { advanceOverlay(type, 1); }
+	public void advanceOverlay(String type, int dir)
 	{
-		int nextHour = hourShown+1;
-		if(nextHour >= maxHours)
-			nextHour = 0;
+		Log.d("MapThreading", "In advanceOverlay: "+type+" dir: "+dir+"   hourShown="+hourShown);
+		int nextHour = hourShown+dir;
+		if(nextHour >= maxHours+startingHour)
+			nextHour = startingHour;
+		if(nextHour < startingHour)
+			nextHour = maxHours+startingHour-1;
+
 		if(type.equals("Ozone"))
 		{
-			if (bitmapsO3[nextHour] == null)
+			if (bitmapsO3[nextHour-startingHour] == null)
 			{
 				Log.d("MapThreading", "The next image #" + nextHour + " is null");
-				hourShown = -1;
-				if(bitmapsO3[0]!=null)
+				if(dir>=1)
 				{
-					setImageOverlay(type, 0);
-					hourShown = 0;
-					Log.d("MapThreading", "Set next image #" + nextHour);
+					hourShown = -100;
+					if(bitmapsO3[0]!=null)
+					{
+						setImageOverlay(type, startingHour);
+						hourShown = startingHour;
+						Log.d("MapThreading", "Set next image1 #" + nextHour);
+					}
+				}
+				else if(dir<=-1)
+				{
+					while(bitmapsO3[nextHour-startingHour]==null && nextHour>startingHour)
+						nextHour--;
+					hourShown=nextHour;
+					if(bitmapsO3[nextHour-startingHour]!=null)
+					{
+						setImageOverlay(type, nextHour);
+						hourShown = nextHour;
+						Log.d("MapThreading", "Set next image2 #" + nextHour);
+					}
 				}
 			} else
 			{
 				setImageOverlay(type, nextHour);
 				hourShown = nextHour;
-				Log.d("MapThreading", "Set next image #" + nextHour);
+				Log.d("MapThreading", "Set next image3 #" + nextHour);
 			}
 		}
-		if(type.equals("PM25"))
+		else if(type.equals("PM25"))
 		{
-			if (bitmapsPM25[nextHour] == null)
+			if (bitmapsPM25[nextHour-startingHour] == null)
 			{
 				Log.d("MapThreading", "The next image #" + nextHour + " is null");
-				hourShown = -1;
-				if(bitmapsPM25[0]!=null)
+				if(dir>=1)
 				{
-					setImageOverlay(type, 0);
-					hourShown = 0;
-					Log.d("MapThreading", "Set next image #" + nextHour);
+					hourShown = -100;
+					if(bitmapsPM25[0]!=null)
+					{
+						setImageOverlay(type, startingHour);
+						hourShown = startingHour;
+						Log.d("MapThreading", "Set next image1 #" + nextHour);
+					}
+				}
+				else if(dir<=-1)
+				{
+					while(bitmapsPM25[nextHour-startingHour]==null && nextHour>startingHour)
+						nextHour--;
+					hourShown=nextHour;
+					if(bitmapsPM25[nextHour-startingHour]!=null)
+					{
+						setImageOverlay(type, nextHour);
+						hourShown = nextHour;
+						Log.d("MapThreading", "Set next image2 #" + nextHour);
+					}
 				}
 			} else
 			{
 				setImageOverlay(type, nextHour);
 				hourShown = nextHour;
-				Log.d("MapThreading", "Set next image #" + nextHour);
+				Log.d("MapThreading", "Set next image3 #" + nextHour);
 			}
+		}
+		else if(type.equals("None"))
+		{
+			setOverlayHour(0);
 		}
 	}
 
 	public void setImageOverlay(String type, int hourDelta)
 	{
-		if(hourDelta==-1) return;
+		if(hourDelta==-100) return;
 		Log.d("ImageStuff", "Setting Image overlay");
 		if(goo!=null)
 		{
 			if (type.equals("Ozone"))
 			{
-				if (bitmapsO3[hourDelta] != null)
+				if (bitmapsO3[hourDelta-startingHour] != null)
 				{
 					if (overlay != null)
 						overlay.remove();
-					goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsO3[hourDelta]));
+					goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsO3[hourDelta-startingHour]));
 					overlay = mainMap.addGroundOverlay(goo);
+					setOverlayHour(hourDelta);
 					//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
 				} else
 				{
@@ -657,12 +826,13 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			}
 			if (type.equals("PM25"))
 			{
-				if (bitmapsPM25[hourDelta] != null)
+				if (bitmapsPM25[hourDelta-startingHour] != null)
 				{
 					if (overlay != null)
 						overlay.remove();
-					goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsPM25[hourDelta]));
+					goo.image(BitmapDescriptorFactory.fromBitmap(bitmapsPM25[hourDelta-startingHour]));
 					overlay = mainMap.addGroundOverlay(goo);
+					setOverlayHour(hourDelta);
 					//Toast.makeText(this, "Image changed", Toast.LENGTH_LONG).show();
 				} else
 				{
@@ -677,6 +847,60 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		//overlay.setImage();
 	}
 
+	public void setOverlayHour(int hourDelta)
+	{
+		//TextView tv = (TextView)findViewById(R.id.textViewHourValue);
+		//tv.setText(""+hourDelta);
+
+		Calendar c = Globals.getTimeOriginal();
+		int dayOriginal = c.get(Calendar.DAY_OF_YEAR);
+		c.add(Calendar.HOUR_OF_DAY, hourDelta);
+		int hour = c.get(Calendar.HOUR_OF_DAY);
+		int dayOfPic = c.get(Calendar.DAY_OF_YEAR);
+
+		int dayDelta = dayOfPic-dayOriginal;
+		if(dayOriginal<=1&&dayOfPic>360) dayDelta=-1;	//If New Year's
+		if(dayOfPic<=1&&dayOriginal>360) dayDelta=1;
+
+		ImageView iv = (ImageView)findViewById(R.id.imageViewHourShown);
+		if(hour==0)			iv.setImageResource(R.drawable.hr00);
+		else if(hour==1)	iv.setImageResource(R.drawable.hr01);
+		else if(hour==2)	iv.setImageResource(R.drawable.hr02);
+		else if(hour==3)	iv.setImageResource(R.drawable.hr03);
+		else if(hour==4)	iv.setImageResource(R.drawable.hr04);
+		else if(hour==5)	iv.setImageResource(R.drawable.hr05);
+		else if(hour==6)	iv.setImageResource(R.drawable.hr06);
+		else if(hour==7)	iv.setImageResource(R.drawable.hr07);
+		else if(hour==8)	iv.setImageResource(R.drawable.hr08);
+		else if(hour==9)	iv.setImageResource(R.drawable.hr09);
+		else if(hour==10)	iv.setImageResource(R.drawable.hr10);
+		else if(hour==11)	iv.setImageResource(R.drawable.hr11);
+		else if(hour==12)	iv.setImageResource(R.drawable.hr12);
+		else if(hour==13)	iv.setImageResource(R.drawable.hr13);
+		else if(hour==14)	iv.setImageResource(R.drawable.hr14);
+		else if(hour==15)	iv.setImageResource(R.drawable.hr15);
+		else if(hour==16)	iv.setImageResource(R.drawable.hr16);
+		else if(hour==17)	iv.setImageResource(R.drawable.hr17);
+		else if(hour==18)	iv.setImageResource(R.drawable.hr18);
+		else if(hour==19)	iv.setImageResource(R.drawable.hr19);
+		else if(hour==20)	iv.setImageResource(R.drawable.hr20);
+		else if(hour==21)	iv.setImageResource(R.drawable.hr21);
+		else if(hour==22)	iv.setImageResource(R.drawable.hr22);
+		else if(hour==23)	iv.setImageResource(R.drawable.hr23);
+		else if(hour==24)	iv.setImageResource(R.drawable.hr24);
+
+		ImageView iv2 = (ImageView)findViewById(R.id.imageViewDayShown);
+		if(dayDelta==-1)		iv2.setImageResource(R.drawable.yesterday);
+		else if(dayDelta==0)	iv2.setImageResource(R.drawable.today);
+		else if(dayDelta==1)	iv2.setImageResource(R.drawable.tomorrow);
+
+		if(overlayType.equals("None"))
+		{
+			iv.setImageResource(0);
+			iv2.setImageResource(0);
+		}
+	}
+
 	private class AnimationThread extends Thread
 	{
 		public boolean shouldContinue = true;
@@ -689,9 +913,17 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			c.add(Calendar.SECOND, 1);
 			while(shouldContinue)
 			{
-				if(Calendar.getInstance().before(c))
+				if(!playing)
+				{
+					c = Calendar.getInstance();
+					c.add(Calendar.SECOND, 1);
 					continue;
-				Log.d("MAPThreading", "In loop now, adding seconds");
+				}
+				if(Calendar.getInstance().before(c))
+				{
+					continue;
+				}
+				Log.d("MAPThreading", "In loop now, adding second");
 				c.add(Calendar.SECOND, 1);
 				//Globals.tabActivity.advanceOverlay();
 				runOnUiThread(new Runnable()
@@ -702,6 +934,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 					}
 				});
 			}
+
+			Log.d("MAPThreading", "SHOULDN'T CONTINUE!!!");
 		}
 	}
 
@@ -747,6 +981,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			else
 			{
 				//pDialog.dismiss();
+				Globals.tabActivity.setOverlayBitmap(type, hourDelta, null);
 				Log.d("ImageStuff", "LoadImage: image==null with hour "+hourDelta);
 				//Toast.makeText(TabActivity.this, "Overlay image not found for hour "+hourDelta, Toast.LENGTH_SHORT).show();
 			}
@@ -802,6 +1037,69 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 	public void onDrawerSlide(View drawer, float offset) { }
 	public void onDrawerStateChanged(int newstate) { }
 
+	public void playPausePressed(View view)
+	{
+		ImageButton ib = (ImageButton)findViewById(R.id.buttonPlayPause);
+		if(playing)
+		{
+			playing=false;
+			ib.setBackgroundResource(R.drawable.play);
+		}
+		else
+		{
+			playing = true;
+			ib.setBackgroundResource(R.drawable.pause);
+
+			//Download the rest of the overlay bitmaps if we need to
+			if (!haveDownloadedAllPics)
+			{
+				hourShown = startingHour;
+				haveDownloadedAllPics = true;
+				downloadRestOfPics();
+			}
+			if (!animThreadHasStarted || animThread == null)
+			{
+				animThreadHasStarted=true;
+				animThread = new AnimationThread();
+				animThread.start();
+			}
+		}
+	}
+	public void leftArrowPressed(View view)
+	{
+		if(!playing) advanceOverlay(overlayType,-1);
+		//Download the rest of the overlay bitmaps if we need to
+		if (!haveDownloadedAllPics)
+		{
+			hourShown = startingHour;
+			haveDownloadedAllPics = true;
+			downloadRestOfPics();
+		}
+		if (!animThreadHasStarted || animThread == null)
+		{
+			animThreadHasStarted=true;
+			animThread = new AnimationThread();
+			animThread.start();
+		}
+	}
+	public void rightArrowPressed(View view)
+	{
+		if(!playing) advanceOverlay(overlayType,1);
+		//Download the rest of the overlay bitmaps if we need to
+		if (!haveDownloadedAllPics)
+		{
+			hourShown = startingHour;
+			haveDownloadedAllPics = true;
+			downloadRestOfPics();
+		}
+		if (!animThreadHasStarted || animThread == null)
+		{
+			animThreadHasStarted=true;
+			animThread = new AnimationThread();
+			animThread.start();
+		}
+	}
+
 
 	//Main Tab
 	public void onItemSelected(AdapterView<?> parent, View view, int pos, long id)
@@ -810,7 +1108,8 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		//Log.d(DEBUG_TAG, "Dropdown selected"+pos+": "+city);
 		if(mainMap!=null)
 		{
-			currentSite.addSiteMarker(mainMap, BitmapDescriptorFactory.HUE_RED);
+			if(currentSite!=null)
+				currentSite.addSiteMarker(mainMap, BitmapDescriptorFactory.HUE_RED);
 		}
 
 		Log.d(TAG, "onItemSelected()");
@@ -831,12 +1130,14 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			currentSite.addSiteMarker(mainMap, BitmapDescriptorFactory.HUE_GREEN);
 		}
 		if(o3TextView==null) Log.d(TAG, "o3TextView==null");
-		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));//, o3TextView, pm25TextView, siteTextView);
+		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));//, o3TextView, pm25TextView, hourTextView);
 	}
 	public void onNothingSelected(AdapterView<?> parent) {}
 
 	public void populateDropdown(Spinner spinner)
 	{
+		//if(spinner==null) Log.e("CrashBug", "In populateDropdown spinner was null");
+		//if(spinner==null) return;
 		String[] items = new String[Globals.siteList.sites.size()];
 		for (int i = 0; i < Globals.siteList.sites.size(); i++)
 			items[i]=Globals.siteList.sites.get(i).Name;
@@ -857,6 +1158,28 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 	public void setDropDownSelection(String city)
 	{
+		//if(dropDown==null) Log.e("CrashBug", "In setDropDownSelection dropDown was null");
+		if(dropDown==null)
+		{
+			/*if(mainTabFragment==null)
+			{
+				//Log.e("CrashBug", "In setDropDownSelection mainTabfragment was null");
+			}*/
+			if(mainTabFragment!=null)
+			{
+				dropDown = mainTabFragment.dropDown;
+				/*Log.e("CrashBug", "In setDropDownSelection dropDown was set to mtf.dropdown");
+				if(dropDown==null)
+				{
+					Log.e("CrashBug", "In setDropDownSelection it's still null...");
+				}
+				else
+				{
+					Log.e("CrashBug", "In setDropDownSelection it's no longer null!");
+				}*/
+			}
+		}
+		if(dropDown==null) return;
 		int i=0;
 		Log.d(TAG, "in setDropDownSelection, dropDown.getCount=="+dropDown.getCount());
 		for(int j=0; j<dropDown.getCount(); j++)
@@ -896,6 +1219,11 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		System.exit(0);
 	}
 
+	public void helpQuestionmarkClicked(View view)
+	{
+		mViewPager.setCurrentItem(2);
+	}
+
 	public void setMainLabels(Site s)
 	{
 		if(aqiTextView==null) { Log.e("AQITextView", "AQITextView is null..."); }
@@ -908,9 +1236,23 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		else if(aqi<=300)	aqiTextView.setTextColor(Color.rgb(180,0,90));		//153 0 76		Purple
 		else if(aqi<=500)	aqiTextView.setTextColor(Color.rgb(126,0,35));		//126 0 35		Maroon
 		else				aqiTextView.setTextColor(Color.rgb(0,0,0));			//Shouldn't get here!!! (Black)
-		o3TextView.setText("Ozone: "+s.OZONEavg_ap);
-		pm25TextView.setText("PM2.5: "+s.PM25avg_ap);
-		siteTextView.setText("Site: "+s.Name);
+		o3TextView.setText("Ozone:    "+s.OZONEavg_ap);
+		pm25TextView.setText("PM2.5:    "+s.PM25avg_ap);
+		//hourTextView.setText("Site: "+s.Name);
+		String hourUsed = "Time:    Varies";
+		if(s.hourUsed!=-100)
+		{
+			Calendar c = Globals.getTimeOriginal();
+			String hour = ""+c.get(Calendar.HOUR);
+			if(hour.equals("0"))
+				hour="12";
+			String ampm = ":00 AM";
+			if(c.get(Calendar.AM_PM)==1)
+				ampm=":00 PM";
+			hourUsed = "Time:    "+hour+ampm+
+					" ("+(c.get(Calendar.MONTH)+1)+"/"+c.get(Calendar.DAY_OF_MONTH)+"/"+c.get(Calendar.YEAR)+")";
+		}
+		hourTextView.setText(hourUsed);
 		if(s.distance>40)		//40km = 25mi
 		{
 			farTextView.setVisibility(View.VISIBLE);
@@ -925,82 +1267,192 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 
 
 		//Forecast view
-		ListView lv = (ListView)findViewById(R.id.listViewForecast);
-		Calendar c = Calendar.getInstance();
+
+		if(lv==null)
+		{
+			ListView lv2 = (ListView) findViewById(R.id.listViewForecast);
+			if(lv2!=null) lv=lv2;
+		}
+		if(lv!=null)
+			setForecastView(s);
+	}
+	public void setForecastView(Site s)
+	{
+		Calendar currentDay = Globals.getTimeOriginal();
+		Calendar c = Globals.getTimeOriginal();
+		//int startingHour = -12;
 		c.add(Calendar.HOUR_OF_DAY, startingHour);
-		ArrayList<String> strings1 = new ArrayList<>();
-		strings1.add("Hour     AQI    Ozone     PM2.5");
-		for(int i=0; i<36; i++)
+		ArrayList<ForecastViewItem> forecastViewItems = new ArrayList<>();
+		//forecastViewItems.add(new ForecastViewItem("Hour", "AQI", "Ozone", "PM2.5", Color.rgb(128,128,128), false));
+		int day = -2;
+		int prevDay = -2;
+		for (int i = 0; i < 36; i++)
 		{
 			int hour = c.get(Calendar.HOUR);
-			String hourString = ""+hour;
-			if(hour==0) hourString = "12";
-			int ampm=c.get(Calendar.AM_PM);
+			String hourString = "" + hour;
+			if (hour == 0) hourString = "12";
+			int ampm = c.get(Calendar.AM_PM);
 			String ampmString = "AM";
-			if(ampm>0) ampmString = "PM";
+			if (ampm > 0) ampmString = "PM";
 			int hourlyAQI = s.getAQI(i);
-			String hourlyAQIString = ""+hourlyAQI;
-			if(hourlyAQI<=0) hourlyAQIString = "-";
+			String hourlyAQIString = "" + hourlyAQI;
+			if (hourlyAQI <= 0) hourlyAQIString = "-";
 			float o3 = s.OZONE8hr_ap[i];
-			String o3String = ""+o3;
-			if(o3<=0) o3String = "-";
+			String o3String = "" + o3;
+			if (o3 <= 0) o3String = "-";
 			float pm25 = s.PM258hr_ap[i];
-			String pm25String = ""+pm25;
-			if(pm25<=0) pm25String = "-";
+			String pm25String = "" + pm25;
+			if (pm25 <= 0) pm25String = "-";
 
-			//strings1.add(""+hourString+ampmString+"      "+hourlyAQIString+"       "+o3String+"        "+pm25String);
-			String str = String.format("%-10s %-10s %-10s %-10s",hourString+ampmString, hourlyAQIString, o3String, pm25String);
-			strings1.add(str);
+			int clr = 0;
+			if(c.get(Calendar.DAY_OF_YEAR)<currentDay.get(Calendar.DAY_OF_YEAR) ||
+					(currentDay.get(Calendar.DAY_OF_MONTH)==1 && currentDay.get(Calendar.MONTH)==Calendar.JANUARY) && c.get(Calendar.MONTH)==Calendar.DECEMBER)
+				//clr = Color.rgb(220,220,0);		//Yesterday
+				day=-1;
+			else if(c.get(Calendar.DAY_OF_YEAR)==currentDay.get(Calendar.DAY_OF_YEAR))
+				//clr = Color.rgb(0,200,0);		//Today
+				day=0;
+			else
+				//clr = Color.rgb(0,180,250);		//Tomorrow
+				day=1;
+			if(hourlyAQI<=0)		clr=Color.rgb(255,255,255);		//White
+			else if(hourlyAQI<=50)	clr=Color.argb(64,0,255,0);		//Green
+			else if(hourlyAQI<=100)	clr=Color.argb(64,220,220,0);	//Yellow
+			else if(hourlyAQI<=150)	clr=Color.argb(64,255,126,0);	//Orange
+			else if(hourlyAQI<=200)	clr=Color.argb(64,220,0,0);		//Red
+			else if(hourlyAQI<=300)	clr=Color.argb(64,180,0,90);	//Purple
+			else if(hourlyAQI<=500)	clr=Color.argb(96,126,0,35);	//Maroon
+			else					clr=Color.rgb(255,255,255);		//Shouldn't get here!!! (Black)
+			if(day>prevDay)
+			{
+				String dateString = ""+(c.get(Calendar.MONTH)+1)+"/"+c.get(Calendar.DAY_OF_MONTH)+"/"+c.get(Calendar.YEAR);
+				if(day==-1)
+					forecastViewItems.add(new ForecastViewItem("Yesterday", dateString, "", "", Color.rgb(187,187,187), true));
+				else if(day==0)
+					forecastViewItems.add(new ForecastViewItem("Today", dateString, "", "", Color.rgb(187,187,187), true));
+				else if(day==1)
+					forecastViewItems.add(new ForecastViewItem("Tomorrow", dateString, "", "", Color.rgb(187,187,187), true));
+			}
+			prevDay=day;
+			forecastViewItems.add(new ForecastViewItem(hourString + ampmString, hourlyAQIString, o3String, pm25String, clr, false));
 			c.add(Calendar.HOUR_OF_DAY, 1);
 		}
-		String[] strings = new String[strings1.size()];
-		strings = strings1.toArray(strings);
-		lv.setAdapter(new ArrayAdapter(this, android.R.layout.simple_list_item_1, strings));
+		ForecastViewListAdapter adapter = new ForecastViewListAdapter(this, forecastViewItems);
+		lv.setAdapter(adapter);
 	}
 
-	public void findCitysLatLon(View view)
+	public void clearSearch(View view)
 	{
-		Log.d("Geocoder", "starting");
-		EditText et = (EditText)findViewById(R.id.editText);
-		Geocoder g = new Geocoder(this);
+		EditText et = (EditText)findViewById(R.id.editTextCitySearch);
+		et.setText("");
+	}
+	public void searchCityName(View view)
+	{
+		hideKeyboard();
+		EditText et = (EditText)findViewById(R.id.editTextCitySearch);
 		String s = et.getText().toString();
-		try
+		//Site site = findCitynamesSite(s);
+		if(citySearchThread==null)
 		{
-			List<Address> l = g.getFromLocationName(s, 1);
-			Address a = l.get(0);
-			double lat = a.getLatitude();
-			double lon = a.getLongitude();
-			Log.d("Geocoder", lat + ","+lon);
-			//Toast.makeText(this, "Lat "+lat+"\nLon "+lon, Toast.LENGTH_LONG).show();
-			//Toast.makeText(this, "Address: "+a.toString(), Toast.LENGTH_LONG).show();
-			Toast.makeText(this, "City: "+a.getFeatureName()+"\nState: "+a.getAdminArea(), Toast.LENGTH_LONG).show();
-			Site site = Globals.siteList.getClosest(lat, lon);
-			if(site!=null)
+			citySearchThread = new GeocoderThread(s, this);
+			citySearchThread.start();
+		}
+	}
+	private class GeocoderThread extends Thread
+	{
+		public String s;
+		public Site site;
+		public Context context;
+
+		public GeocoderThread(String _s, Context _context)
+		{
+			s=_s;
+			context=_context;
+		}
+
+		@Override
+		public void run()
+		{
+			site = findCitynamesSite(s);
+			runOnUiThread(new Runnable()
 			{
-				setDropDownSelection(site.Name);
+				public void run()
+				{
+					if (site != null)
+						setDropDownSelection(site.Name);
+					if (citySearchThread != null)
+					{
+						try
+						{
+							citySearchThread.join();
+							citySearchThread = null;
+						}
+						catch(InterruptedException e)
+						{
+							Log.d(TAG, "InterruptedException trying to citySearchThread.join()");
+							citySearchThread = null;
+						}
+					}
+				}
+			});
+		}
+
+		public Site findCitynamesSite(String name)
+		{
+			Log.d("Geocoder", "starting");
+			Geocoder g = new Geocoder(context);
+			try
+			{
+				List<Address> l = g.getFromLocationName(name, 1);
+				final Address a = l.get(0);
+				double lat = a.getLatitude();
+				double lon = a.getLongitude();
+				Log.d("Geocoder", lat + ","+lon);
+				//Toast.makeText(this, "Lat "+lat+"\nLon "+lon, Toast.LENGTH_LONG).show();
+				//Toast.makeText(this, "Address: "+a.toString(), Toast.LENGTH_LONG).show();
+				runOnUiThread(new Runnable()
+				{
+					public void run()
+					{
+						Toast.makeText(context, "City: "+a.getFeatureName()+"\nState: "+a.getAdminArea(), Toast.LENGTH_LONG).show();
+					}
+				});
+				return Globals.siteList.getClosest(lat, lon);
+			}
+			catch (IOException e)
+			{
+				Log.d("Geocoder", "IOException");
+				return null;
 			}
 		}
-		catch (IOException e)
-		{
-			Log.d("Geocoder", "IOException");
-		}
 	}
 
-	public void goToMap(View view)
+	public void currentClicked(View view)
 	{
-		/*mViewPager.setCurrentItem(1);
-		if(mainMap==null)
-			return;
-
-		LatLng markerLocation = new LatLng(currentSite.Latitude, currentSite.Longitude);
-		mainMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLocation, zoomLevel));*/
-
-
-		//updateAllSites(view);
-		//togglePinMode(view);
-		switchForecastMode(view);
+		LinearLayout ll = (LinearLayout)findViewById(R.id.LayoutCurrent);
+		ll.setVisibility(View.VISIBLE);
+		LinearLayout ll2 = (LinearLayout)findViewById(R.id.LayoutForecast);
+		ll2.setVisibility(View.INVISIBLE);
+		showingForecast=false;
+		ToggleButton tbC = (ToggleButton)findViewById(R.id.toggleButtonCurrent);
+		tbC.setChecked(true);
+		ToggleButton tbF = (ToggleButton)findViewById(R.id.toggleButtonForecast);
+		tbF.setChecked(false);
+	}
+	public void forecastClicked(View view)
+	{
+		LinearLayout ll = (LinearLayout)findViewById(R.id.LayoutCurrent);
+		ll.setVisibility(View.INVISIBLE);
+		LinearLayout ll2 = (LinearLayout)findViewById(R.id.LayoutForecast);
+		ll2.setVisibility(View.VISIBLE);
+		showingForecast=true;
+		ToggleButton tbC = (ToggleButton)findViewById(R.id.toggleButtonCurrent);
+		tbC.setChecked(false);
+		ToggleButton tbF = (ToggleButton)findViewById(R.id.toggleButtonForecast);
+		tbF.setChecked(true);
 	}
 
+	/*
 	public void updateAllSites(View view)
 	{
 		//Currently changes the main tab labels every time it gets a new site's updates
@@ -1009,18 +1461,18 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			Site s = Globals.siteList.sites.get(i);
 			s.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));
 		}
-	}
+	}//*/
 
 	public void togglePinMode(View view)
 	{
-		if(pinMode.equals("All"))
+		/*if(pinMode.equals("All"))
 		{ pinMode = "Ozone"; }
 		else if(pinMode.equals("Ozone"))
 		{ pinMode = "PM25"; }
 		else if(pinMode.equals("PM25"))
 		{ pinMode = "None"; }
 		else if(pinMode.equals("None"))
-		{ pinMode = "All"; }
+		{ pinMode = "All"; }*/
 
 		Site siteUsing;
 		if(currentSite!=null) { siteUsing = currentSite; }
@@ -1028,9 +1480,9 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		setSiteMarkers(siteUsing, mainMap);
 
 		TextView tv = (TextView)view;
-		tv.setText(pinMode);
+		if(tv!=null)
+			tv.setText(pinMode);
 	}
-
 	public void openNavDrawer(View view)
 	{
 		Log.d("Open navdrawer", "Open navdrawer called");
@@ -1038,25 +1490,105 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		navDrawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
 	}
 
-	public void switchForecastMode(View view)
+	public void swapO3PMOverlay(View view)
 	{
-		if(!showingForecast)
+		hourShown=startingHour-1;
+		Log.d("MapStuff", "Looking to remove overlay...");
+		if(overlay!=null)
 		{
-			FrameLayout fl = (FrameLayout)findViewById(R.id.layoutCurrent);
-			fl.setVisibility(View.INVISIBLE);
-			ListView lv = (ListView)findViewById(R.id.listViewForecast);
-			lv.setVisibility(View.VISIBLE);
-			showingForecast=true;
+			overlay.remove();
+			Log.d("MapStuff", "Overlay removed...");
 		}
-		else
+		advanceOverlay(overlayType, 1);
+	}
+
+	public void onItemClick(AdapterView parent, View view, int position, long id)
+	{
+		Log.d("Drawer", "Item #"+position+" selected");
+		selectDrawerItem(position);
+	}
+
+	public void selectDrawerItem(int position)
+	{
+		if(position==1)
 		{
-			FrameLayout fl = (FrameLayout)findViewById(R.id.layoutCurrent);
-			fl.setVisibility(View.VISIBLE);
-			ListView lv = (ListView)findViewById(R.id.listViewForecast);
-			lv.setVisibility(View.INVISIBLE);
-			showingForecast=false;
+			togglePinMode(null);
 		}
 	}
+
+	public void setDrawerItemButton(int position, Button button)
+	{
+		final int p = position;
+		if(navButtons[position]==null)
+		{
+			navButtons[position]=button;
+			navButtons[position].setOnClickListener(new Button.OnClickListener()
+			{
+				public void onClick(View view)
+				{
+					Globals.tabActivity.navButtonClicked(p);
+				}
+			});
+			if(position==1||position==6)		//All sites and O3 overlay
+			{
+				RadioButton rb = (RadioButton)navButtons[position];
+				rb.setChecked(true);
+			}
+		}
+	}
+
+	public void navButtonClicked(int position)
+	{
+		Log.d("Drawer", "Button #"+position+" clicked!");
+		int minSitesButtons=1;
+		int maxSitesButtons=4;
+		if(position>=minSitesButtons&&position<=maxSitesButtons)		//Sites shown
+		{
+			for(int i=minSitesButtons; i<=maxSitesButtons; i++)
+			{
+				RadioButton rb = (RadioButton)navButtons[i];
+				rb.setChecked(false);
+			}
+			RadioButton rb = (RadioButton)navButtons[position];
+			rb.setChecked(true);
+			if(position==1) pinMode="All";
+			if(position==2) pinMode="Ozone";
+			if(position==3) pinMode="PM25";
+			if(position==4) pinMode="None";
+			togglePinMode(null);
+		}
+		int minOverlayButtons=6;
+		int maxOverlayButtons=8;
+		if(position>=minOverlayButtons&&position<=maxOverlayButtons)		//Overlay shown
+		{
+			for(int i=minOverlayButtons; i<=maxOverlayButtons; i++)
+			{
+				RadioButton rb = (RadioButton)navButtons[i];
+				rb.setChecked(false);
+			}
+			RadioButton rb = (RadioButton)navButtons[position];
+			rb.setChecked(true);
+			if(position==6) overlayType="Ozone";
+			if(position==7) overlayType="PM25";
+			if(position==8) overlayType="None";
+			swapO3PMOverlay(null);
+		}
+	}
+
+	public void hideKeyboard()
+	{
+		EditText et = (EditText) findViewById(R.id.editTextCitySearch);
+		if(et!=null)
+			et.clearFocus();
+		InputMethodManager inputManager = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		if(inputManager!=null)
+		{
+			View view = getCurrentFocus();
+			if(view!=null)
+					inputManager.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+		}
+	}
+
 
 
 
@@ -1121,10 +1653,10 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			Globals.lastLatitude = latitude;
 			Globals.lastLongitude = longitude;
 			Globals.haveLocation = true;
-			findViewById(R.id.buttonGetCoords).setVisibility(View.INVISIBLE);
+			//findViewById(R.id.buttonGetCoords).setVisibility(View.INVISIBLE);
 
 			Site closest = Globals.siteList.getClosest(latitude, longitude);
-			//closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+			//closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, hourTextView);
 			if(closest!=null) setDropDownSelection(closest.Name);
 			//Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
 		}
@@ -1158,21 +1690,32 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		Log.d(TAG, "@@@In dropDownIsReady()");
 		dropDown = (Spinner)findViewById(R.id.spinnerinmaintab);
 		if(dropDown==null) Log.d(TAG, "@@@dropDown==null");
-		mainTabFragment = mSectionsPagerAdapter.mtf;
+		//mainTabFragment = mSectionsPagerAdapter.mtf;
+		//Log.e("CrashBug", "In dropDownIsReady() mainTabFragment was not set to mSectionsPagerAdapter.mtf");
 		if(mainTabFragment!=null)
 		{
 			Log.d(TAG, "@@@mainTabFragment!=null");
 			dropDown = mainTabFragment.dropDown;
+			farTextView = mainTabFragment.farTextView;
+			farButton = mainTabFragment.farButton;
+			farTextView.setVisibility(View.INVISIBLE);
+			farButton.setVisibility(View.INVISIBLE);
+			aqiTextView = mainTabFragment.aqiTextView;
+			o3TextView = mainTabFragment.o3TextView;
+			pm25TextView = mainTabFragment.pm25TextView;
+			hourTextView = mainTabFragment.siteTextView;
+			TextView tv = mainTabFragment.questionmarkTextView;
+			tv.setPaintFlags(tv.getPaintFlags()|Paint.UNDERLINE_TEXT_FLAG);
 			if(dropDown==null) Log.d(TAG, "asdf@@@dropDown==null");
+
+			ToggleButton tbC = mainTabFragment.toggleButtonCurrent;
+			//tbC.setChecked(true);
+			currentClicked(null);
 		}
 		else
 		{
 			Log.d(TAG, "@@@mainTabFragment==null");
 		}
-		farTextView = mainTabFragment.farTextView;
-		farButton = mainTabFragment.farButton;
-		farTextView.setVisibility(View.INVISIBLE);
-		farButton.setVisibility(View.INVISIBLE);
 		if(dropDown!=null)
 		{
 			Log.d(TAG, "DROPDOWN HAS BEEN SET!!!!!!!!!!");
@@ -1189,7 +1732,7 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 			Site closest = Globals.siteList.getClosest(latitude, longitude);
 			if (closest != null)
 			{
-				if(closest.distance>0)
+				if(closest.distance>40)
 					farTextView.setVisibility(View.VISIBLE);		//40km=25mi
 				Log.d(TAG, "Closest=="+closest.Name);
 				Log.d(TAG, "Closest.distance=="+closest.distance);
@@ -1202,10 +1745,6 @@ public class TabActivity extends ActionBarActivity implements ActionBar.TabListe
 		}
 
 
-		aqiTextView = mainTabFragment.aqiTextView;
-		o3TextView = mainTabFragment.o3TextView;
-		pm25TextView = mainTabFragment.pm25TextView;
-		siteTextView = mainTabFragment.siteTextView;
 	}
 
 	public void saveButtonClicked(View view) { save(); }

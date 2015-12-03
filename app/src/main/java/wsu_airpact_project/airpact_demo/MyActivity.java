@@ -58,7 +58,7 @@ public class MyActivity extends ActionBarActivity  implements
 		pm25TextView = (TextView) findViewById(R.id.textViewPM2_5Label);
 		siteTextView = (TextView) findViewById(R.id.textViewSiteLabel);
 		//Site pullman = new Site("Pullman-Dexter Ave", "530750003", 46.7245, -117.1801);
-		//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+		//pullman.getLatestData((ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, hourTextView);
 
 		dropDown = (Spinner)findViewById(R.id.spinner);
 		if(!Globals.siteList.setDropdown(dropDown, (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE)))
@@ -77,7 +77,7 @@ public class MyActivity extends ActionBarActivity  implements
 		Site currSite;
 		if(pos>Globals.siteList.sites.size()) return;			//Due to siteList not being thread-safe?
 		currSite = Globals.siteList.sites.get(pos);
-		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));//, o3TextView, pm25TextView, siteTextView);
+		currSite.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE));//, o3TextView, pm25TextView, hourTextView);
 	}
 	public void onNothingSelected(AdapterView<?> parent) {}
 
@@ -197,7 +197,7 @@ public class MyActivity extends ActionBarActivity  implements
 			findViewById(R.id.buttonGetCoords).setVisibility(View.INVISIBLE);
 
 			Site closest = Globals.siteList.getClosest(latitude, longitude);
-			//closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, siteTextView);
+			//closest.getLatestData((ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE), o3TextView, pm25TextView, hourTextView);
 			if(closest!=null) setDropDownSelection(closest.Name);
 			//Toast.makeText(this, "Location updated...", Toast.LENGTH_LONG).show();
 

@@ -15,7 +15,7 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/wsu_shield"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
@@ -94,7 +94,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!--android:label="@string/title_activity_tab"-->
         </activity>
     </application>
 

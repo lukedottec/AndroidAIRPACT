@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:id="@+id/LayoutForecastHeader"
+                android:background="#aaa"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="New Text2"
+        android:textColor="#000"
+        android:textSize="22sp"
+        android:layout_marginLeft="14dp"
+        android:layout_marginStart="14dp"
+        android:id="@+id/textViewForecastDay"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="New Text2"
+        android:textColor="#000"
+        android:textSize="22sp"
+        android:layout_marginLeft="14dp"
+        android:layout_marginStart="14dp"
+        android:id="@+id/textViewForecastDate"/>
+
+</LinearLayout>

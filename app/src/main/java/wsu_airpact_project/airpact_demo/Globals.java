@@ -2,6 +2,8 @@ package wsu_airpact_project.airpact_demo;
 
 import android.util.Log;
 
+import java.util.Calendar;
+
 /**
  ** Created by Agent1729 on 4/18/2015.
  */
@@ -21,6 +23,8 @@ public class Globals
 	public static boolean setting1 = false;
 	public static boolean setting2 = false;
 	public static boolean setting3 = true;
+
+	private static Calendar timeOriginal;
 
 	public static void parseFile(String data)
 	{
@@ -104,4 +108,12 @@ public class Globals
 			Log.d(DEBUG_TAG, "index out of bounds at "+i);
 		}
 	}
+
+	public static void setTimeOriginal()
+	{
+		timeOriginal = Calendar.getInstance();
+		//timeOriginal.add(Calendar.DAY_OF_YEAR, -2);
+		//timeOriginal.add(Calendar.HOUR_OF_DAY, -12);
+	}
+	public static Calendar getTimeOriginal() { return (Calendar)timeOriginal.clone(); }
 }

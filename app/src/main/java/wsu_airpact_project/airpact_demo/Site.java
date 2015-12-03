@@ -39,13 +39,14 @@ public class Site implements Comparable<Site>
 	public float OZONEavg_an = -1;	//
 	public float PM25avg_ap = -1;	//
 	public float PM25avg_an = -1;	//
+	public int hourUsed;
 	public float[] OZONE8hr_ap;
 	public float[] OZONE8hr_an;
 	public float[] PM258hr_ap;
 	public float[] PM258hr_an;
 	public boolean hasOzone;
 	public boolean hasPM25;
-	private int startingHour = -12;
+	//private static int startingHour = -12;
 	private int hoursToRecord = 36;
 //	public Time lastUpdate;
 	//public int GMToff;			//smallint
@@ -73,6 +74,7 @@ public class Site implements Comparable<Site>
 		OZONEavg_an=-1;
 		PM25avg_ap=-1;
 		PM25avg_an=-1;
+		hourUsed = -100;
 		OZONE8hr_ap = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) OZONE8hr_ap[i]=-1;
 		OZONE8hr_an = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) OZONE8hr_an[i]=-1;
 		PM258hr_ap = new float[hoursToRecord]; for(int i=0; i<hoursToRecord; i++) PM258hr_ap[i]=-1;
@@ -141,16 +143,18 @@ public class Site implements Comparable<Site>
 		}
 	}
 
-	public void parseData(String d) { parseData(d, Calendar.getInstance()); }
+	public void parseData(String d) { parseData(d, Globals.getTimeOriginal()); }
 	public void parseData(String d, Calendar current)
 	{
+		int startingHour = Globals.tabActivity.startingHour;
 		data=d;
 		int i=0;
 		OZONEavg_ap=-1;
 		OZONEavg_an=-1;
 		PM25avg_ap=-1;
 		PM25avg_an=-1;
-		//Calendar current = Calendar.getInstance();
+		hourUsed = -100;
+		//Calendar current = Globals.getTimeOriginal();
 		current.set(Calendar.MINUTE, 0);
 		current.set(Calendar.SECOND, 0);
 		current.set(Calendar.MILLISECOND, 0);
@@ -216,7 +220,7 @@ public class Site implements Comparable<Site>
 				{
 					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 					Date date = sdf.parse(dateLocal);
-					Calendar c = Calendar.getInstance();
+					Calendar c = Globals.getTimeOriginal();
 					c.setTimeInMillis(date.getTime());
 					Log.d("TimeParse", ""+Name+"   Year = "+c.get(Calendar.YEAR)+" Month = "+c.get(Calendar.MONTH)+" Day = "+c.get(Calendar.DAY_OF_MONTH)+" Hour = "+c.get(Calendar.HOUR_OF_DAY)+" Minute = "+c.get(Calendar.MINUTE)+" Second = "+c.get(Calendar.SECOND)+" MS = "+c.get(Calendar.MILLISECOND));
 					Log.d("TimeParse", ""+Name+"   Year = "+current.get(Calendar.YEAR)+" Month = "+current.get(Calendar.MONTH)+" Day = "+current.get(Calendar.DAY_OF_MONTH)+" Hour = "+current.get(Calendar.HOUR_OF_DAY)+" Minute = "+current.get(Calendar.MINUTE)+" Second = "+current.get(Calendar.SECOND)+" MS = "+current.get(Calendar.MILLISECOND));
@@ -251,6 +255,14 @@ public class Site implements Comparable<Site>
 					if(pm_an!=-1) PM258hr_an[(int)diff-startingHour]=pm_an;
 					Log.d("TimeParse", "     Set array values for hour "+diff);
 				}
+			}
+			if(startingHour<=0)
+			{
+				if (OZONE8hr_ap[-startingHour] != -1) OZONEavg_ap = OZONE8hr_ap[-startingHour];
+				if (OZONE8hr_an[-startingHour] != -1) OZONEavg_an = OZONE8hr_an[-startingHour];
+				if (PM258hr_ap[-startingHour] != -1) PM25avg_ap = PM258hr_ap[-startingHour];
+				if (PM258hr_an[-startingHour] != -1) PM25avg_an = PM258hr_an[-startingHour];
+				hourUsed=0;
 			}
 		}
 		catch(StringIndexOutOfBoundsException e)

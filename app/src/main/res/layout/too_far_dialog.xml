@@ -3,7 +3,7 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent">
     <ImageView
-        android:src="@mipmap/ic_launcher"
+        android:src="@drawable/wsu_shield"
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:scaleType="center"
@@ -20,7 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="You are too far away from your nearest site to get an accurate reading. Please select a nearby site to use instead, or select cancel."
+        android:text="You are too far away from your selected site to get an accurate reading for your location. Please select a nearby site to use instead, or select cancel."
         android:id="@+id/textView2"
         android:layout_marginLeft="10dp"
         android:layout_marginTop="10dp"
