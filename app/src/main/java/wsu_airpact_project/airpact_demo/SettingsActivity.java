@@ -4,23 +4,34 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.CheckBox;
+import android.widget.RadioButton;
 
 
 public class SettingsActivity extends ActionBarActivity {
 
-	CheckBox s1;
-	CheckBox s2;
-	CheckBox s3;
+	RadioButton defaultOzone;
+	RadioButton defaultPM25;
+	RadioButton defaultNone;
+
+	RadioButton useAP;
+	RadioButton useAN;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_settings);
 
-		s1 = (CheckBox)findViewById(R.id.checkBox);
-		s2 = (CheckBox)findViewById(R.id.checkBox2);
-		s3 = (CheckBox)findViewById(R.id.checkBox3);
+		defaultOzone = (RadioButton)findViewById(R.id.radioButtonOzone);
+		defaultPM25 = (RadioButton)findViewById(R.id.radioButtonPM25);
+		defaultNone = (RadioButton)findViewById(R.id.radioButtonNone);
+		if(Globals.defaultOverlay.equals("Ozone")) defaultOzone.setChecked(true);
+		else if(Globals.defaultOverlay.equals("PM25")) defaultPM25.setChecked(true);
+		else if(Globals.defaultOverlay.equals("None")) defaultNone.setChecked(true);
+
+		useAP = (RadioButton)findViewById(R.id.radioButtonAP);
+		useAN = (RadioButton)findViewById(R.id.radioButtonAN);
+		if(Globals.useMethod.equals("AP")) useAP.setChecked(true);
+		else if(Globals.useMethod.equals("AN")) useAN.setChecked(true);
 	}
 
 	@Override
@@ -31,18 +42,25 @@ public class SettingsActivity extends ActionBarActivity {
 		//getActionBar().setDisplayOptions(0, ActionBar.DISPLAY_SHOW_HOME);
 		getSupportActionBar().setDisplayOptions(0, android.support.v7.app.ActionBar.DISPLAY_SHOW_HOME);
 
-		s1.setChecked(Globals.setting1);
-		s2.setChecked(Globals.setting2);
-		s3.setChecked(Globals.setting3);
+		if(Globals.defaultOverlay.equals("Ozone")) defaultOzone.setChecked(true);
+		else if(Globals.defaultOverlay.equals("PM25")) defaultPM25.setChecked(true);
+		else if(Globals.defaultOverlay.equals("None")) defaultNone.setChecked(true);
+
+		if(Globals.useMethod.equals("AP")) useAP.setChecked(true);
+		else if(Globals.useMethod.equals("AN")) useAN.setChecked(true);
 	}
 
 	@Override
 	protected void onPause()
 	{
 		super.onPause();
-		Globals.setting1 = s1.isChecked();
-		Globals.setting2 = s2.isChecked();
-		Globals.setting3 = s3.isChecked();
+
+		if(defaultOzone.isChecked()) Globals.defaultOverlay="Ozone";
+		else if(defaultPM25.isChecked()) Globals.defaultOverlay="PM25";
+		else if(defaultNone.isChecked()) Globals.defaultOverlay="None";
+
+		if(useAP.isChecked()) Globals.useMethod="AP";
+		else if(useAN.isChecked()) Globals.useMethod="AN";
 
 		Globals.tabActivity.save();
 	}

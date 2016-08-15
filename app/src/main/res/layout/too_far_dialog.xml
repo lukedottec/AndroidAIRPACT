@@ -1,5 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical"
+              android:background="#DDDDDD"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
     <ImageView
@@ -7,12 +8,13 @@
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:scaleType="center"
-        android:background="#FF22BB33"
+        android:background="#555555"
         android:contentDescription="@string/app_name" />
 
     <Spinner
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:id="@+id/spinnerintoofar"
         android:layout_gravity="center_horizontal|top"/>
 
@@ -22,9 +24,8 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="You are too far away from your selected site to get an accurate reading for your location. Please select a nearby site to use instead, or select cancel."
         android:id="@+id/textView2"
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="20dp"
         android:layout_marginTop="10dp"
-        android:layout_marginRight="10dp"
-        android:layout_marginBottom="10dp"
-        android:layout_margin="20dp"/>
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="20dp"/>
 </LinearLayout>

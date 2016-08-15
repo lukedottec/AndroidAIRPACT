@@ -17,6 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="AIRPACT"
+            android:textColor="#AA0000"
             android:id="@+id/textViewAIRPACTInfoHeader"
             android:layout_gravity="center_horizontal"
             android:textSize="40sp"/>
@@ -24,8 +25,18 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="AIRPACT4 is an air pollution monitoring and forecasting system developed by the Laboratory for Atmospheric Research at Washington State University. The system collects data from the nation's AIRNOW air monitoring sites and runs them through a forecasting algorithm to predict and accurately model the air quality patterns throughout the Pacific Northwest."
+            android:text="AIRPACT is an air-quality forecasting system, providing daily 48-hour forecasts of air pollution for the Pacific Northwest.  Operated by the Laboratory for Atmospheric Research at Washington State University, AIRPACT uses weather forecast model results and emissions data to predict hourly air chemistry on a 4-km grid.  AIRPACT also collects air-quality monitoring results for display and for comparison against the forecast."
             android:id="@+id/textViewAIRPACTInfo"
+            android:textSize="20sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="http://lar.wsu.edu/airpact/"
+            android:id="@+id/textViewWebLink"
+            android:textColor="#1144FF"
+            android:onClick="webLinkClicked"
+            android:layout_gravity="center_horizontal"
             android:textSize="20sp"/>
 
         <TextView
@@ -105,38 +116,85 @@
             android:layout_marginStart="20dp"
             android:textSize="20sp"/>
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Ozone"
-            android:id="@+id/textViewO3InfoHeader"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="20dp"
-            android:textSize="40sp"/>
+            android:layout_marginTop="20dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Ozone, sometimes shortened to O3, is the measure of Ozone gas in the air. The numerical value is the measure of Ozone ppb, or parts per billion."
-            android:id="@+id/textViewO3Info"
-            android:layout_marginBottom="10dp"
-            android:textSize="20sp"/>
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="PM2.5"
-            android:id="@+id/textViewPM25InfoHeader"
-            android:layout_gravity="center_horizontal"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ozone"
+                    android:id="@+id/textViewO3InfoHeader"
+                    android:layout_gravity="center_horizontal"
+                    android:textSize="40sp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ozone, sometimes shortened to O3, is the measure of Ozone gas in the air. The numerical value is the measure of Ozone ppb, or parts per billion."
+                    android:id="@+id/textViewO3Info"
+                    android:layout_marginBottom="10dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:gravity="center"
+                    android:textSize="20sp"/>
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="85dp"
+                android:layout_height="355dp"
+                android:src="@drawable/legend_o3avg"
+                android:id="@+id/imageViewO3Legend"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
             android:layout_marginTop="10dp"
-            android:textSize="40sp"/>
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="PM2.5 stands for Particulate Matter. It is the measure of certain particles in the air, including nitrates, sulfates, metals, or soil and dust particles. The numerical value is the measure of PM2.5 milligrams per cubic meter."
-            android:id="@+id/textViewPM25Info"
-            android:layout_marginBottom="10dp"
-            android:textSize="20sp"/>
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PM2.5"
+                    android:id="@+id/textViewPM25InfoHeader"
+                    android:layout_gravity="center_horizontal"
+                    android:textSize="40sp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PM2.5 stands for Particulate Matter. It is the measure of certain particles in the air, including nitrates, sulfates, metals, or soil and dust particles. The numerical value is the measure of PM2.5 milligrams per cubic meter."
+                    android:id="@+id/textViewPM25Info"
+                    android:layout_marginBottom="10dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:gravity="center"
+                    android:textSize="20sp"/>
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="85dp"
+                android:layout_height="355dp"
+                android:src="@drawable/legend_pm25"
+                android:id="@+id/imageViewPM25Legend"/>
+        </LinearLayout>
+
     </LinearLayout>
 </ScrollView>

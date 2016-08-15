@@ -65,9 +65,10 @@ public class SiteList
 
 	public boolean updateSites(String type, ConnectivityManager connService)
 	{
-
 		//String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/monitors.aspx";
-		String stringURL="http://lar.wsu.edu/R_apps/2015ap4/data/mon2015.csv";
+		//AP4: String stringURL="http://lar.wsu.edu/R_apps/2015ap4/data/mon2015.csv";
+		// Confirmed: updated site lists to AP5
+		String stringURL="http://lar.wsu.edu/R_apps/2016ap5/data/mon2016.csv";
 		//ConnectivityManager connService = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo networkInfo = connService.getActiveNetworkInfo();
 		if(networkInfo != null && networkInfo.isConnected())

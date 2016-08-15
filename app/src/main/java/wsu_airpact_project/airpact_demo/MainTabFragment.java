@@ -25,6 +25,7 @@ public class MainTabFragment extends TabActivity.TabFragment //implements Adapte
 	protected TextView siteTextView;
 	protected TextView farTextView;
 	protected TextView questionmarkTextView;
+	protected TextView useMethodTextView;
 	protected Button farButton;
 	protected ToggleButton toggleButtonCurrent;
 
@@ -48,6 +49,7 @@ public class MainTabFragment extends TabActivity.TabFragment //implements Adapte
 			siteTextView = (TextView)rootView.findViewById(R.id.textViewSiteLabelInTab);
 			farTextView = (TextView)rootView.findViewById(R.id.textViewFarInTab);
 			questionmarkTextView = (TextView)rootView.findViewById(R.id.textViewHelpButton);
+			useMethodTextView = (TextView)rootView.findViewById(R.id.textViewUseMethod);
 			farButton = (Button)rootView.findViewById(R.id.buttonTooFarInfo);
 			toggleButtonCurrent = (ToggleButton)rootView.findViewById(R.id.toggleButtonCurrent);
 			Log.d("MainTabFragmentTag","dropDown set in MainTabFragment");

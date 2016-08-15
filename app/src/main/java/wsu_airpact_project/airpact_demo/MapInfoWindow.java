@@ -40,10 +40,23 @@ public class MapInfoWindow implements GoogleMap.InfoWindowAdapter
 			name.setText(s.Name);
 			TextView aqi = (TextView) view.findViewById(R.id.textViewAQIInfoWindow);
 			aqi.setText("AQI: " + s.getAQI(0, 0));
+
 			TextView o3 = (TextView) view.findViewById(R.id.textViewO3InfoWindow);
-			o3.setText("Ozone: " + s.OZONEavg_ap);
+			float o3val = -1;
+			if(Globals.useMethod.equals("AP"))		o3val = s.OZONEavg_ap;
+			else if(Globals.useMethod.equals("AN"))	o3val = s.OZONEavg_an;
+			else									o3val = s.OZONEavg_ap;
+			if(o3val>=0)	o3.setText("Ozone: " + o3val);
+			else 			o3.setText("Ozone: Unavailable");
+
 			TextView pm25 = (TextView) view.findViewById(R.id.textViewPM25InfoWindow);
-			pm25.setText("PM2.5: " + s.PM25avg_ap);
+			float pm25val = -1;
+			if(Globals.useMethod.equals("AP"))		pm25val = s.PM25avg_ap;
+			else if(Globals.useMethod.equals("AN"))	pm25val = s.PM25avg_an;
+			else									pm25val = s.PM25avg_ap;
+			if(pm25val>=0)	pm25.setText("Ozone: " + pm25val);
+			else 			pm25.setText("Ozone: Unavailable");
+
 			return view;
 		}
 	}

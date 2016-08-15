@@ -14,15 +14,15 @@ public class Globals
 	public static SiteList siteList = new SiteList();
 
 	public static boolean haveLocation = false;
-	public static MyActivity myActivity;
+	//public static MyActivity myActivity;
 	public static TabActivity tabActivity;
 	//public static TabActivity.TabFragment myFragment;
 
 	public static double lastLatitude = 0.0;
 	public static double lastLongitude = 0.0;
-	public static boolean setting1 = false;
-	public static boolean setting2 = false;
-	public static boolean setting3 = true;
+
+	public static String defaultOverlay = "Ozone";
+	public static String useMethod = "AP";
 
 	private static Calendar timeOriginal;
 
@@ -31,19 +31,14 @@ public class Globals
 		int i=0;
 		try
 		{
-			//Setting1
-			String s1 = "";
-			while(data.charAt(i)!='\r') { s1=s1.concat(""+data.charAt(i++)); }
+			//defaultOverlay
+			String dO = "";
+			while(data.charAt(i)!='\r') { dO=dO.concat(""+data.charAt(i++)); }
 			i+=2;
 
-			//Setting2
-			String s2 = "";
-			while(data.charAt(i)!='\r') { s2=s2.concat(""+data.charAt(i++)); }
-			i+=2;
-
-			//Setting3
-			String s3 = "";
-			while(data.charAt(i)!='\r') { s3=s3.concat(""+data.charAt(i++)); }
+			//useMethod
+			String uM = "";
+			while(data.charAt(i)!='\r') { uM=uM.concat(""+data.charAt(i++)); }
 			i+=2;
 
 			//Latitude
@@ -92,9 +87,9 @@ public class Globals
 			}
 			while(data.charAt(i)!='\r') { i++; }	i+=2;		//":ENDSITELIST"
 
-			setting1=s1.equals("true");
-			setting2=s2.equals("true");
-			setting3=s3.equals("true");
+			defaultOverlay=dO;
+			useMethod=uM;
+			Log.d("SaveLoad", "Got \""+uM+"\" for uM");
 			try { lastLatitude=Float.parseFloat(lat); } catch(NumberFormatException e) { lastLatitude=0; }
 			try { lastLongitude=Float.parseFloat(lon); } catch(NumberFormatException e) { lastLongitude=0; }
 

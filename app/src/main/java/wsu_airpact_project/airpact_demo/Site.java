@@ -25,6 +25,8 @@ import java.util.Scanner;
 /**
  ** Created by Agent1729 on 4/8/2015.
  */
+
+/** @info Site = place being monitored/forecasted for air quality */
 public class Site implements Comparable<Site>
 {
 	public String myDate = null;
@@ -64,6 +66,7 @@ public class Site implements Comparable<Site>
 	//private TextView TVPM25;
 	//private TextView TVSite;
 
+	// Constructor
 	public Site(String _name, String _aqsid, double _lat, double _long, boolean _hasOzone, boolean _hasPM25)
 	{
 		Name=_name;
@@ -89,14 +92,16 @@ public class Site implements Comparable<Site>
 		//TVPM25=null;
 	}
 
+	// Check if site is empty of data
 	public boolean hasValues() { return OZONEavg_ap!=-1; }
-
+	// Compare distance between two sites
 	@Override
 	public int compareTo(@NonNull Site s2)
 	{
 		return (int)(this.distance-s2.distance);
 	}
 
+	// TODO
 	public void updatePin(ConnectivityManager connService)//, TextView tvO3, TextView tvpm25, TextView tvsite)
 	{
 		//TVO3=tvO3;
@@ -121,7 +126,7 @@ public class Site implements Comparable<Site>
 			parseData(data);
 		}
 	}
-
+	// Will start DownloadWebpageTask to get this site's data
 	public void getLatestData(ConnectivityManager connService)//, TextView tvO3, TextView tvpm25, TextView tvsite)
 	{
 		//TVO3=tvO3;
@@ -129,20 +134,25 @@ public class Site implements Comparable<Site>
 		//TVSite=tvsite;
 
 		//String stringURL="http://lar.wsu.edu/airpact/AP4_mobile/default.aspx?aqsid="+AQSID+"&format=csv";
+		// Confirmed: AIRPACT-5 values
 		String stringURL="http://www.aeolus.wsu.edu:3838/mobile_data/tmp/"+AQSID+".csv";
+
 		NetworkInfo networkInfo = connService.getActiveNetworkInfo();
 		if(networkInfo != null && networkInfo.isConnected())
 		{
+			// Download
 			Log.d(DEBUG_TAG, "Downloading: "+Name);
 			new DownloadWebpageTask().execute(stringURL);
 		}
 		else
 		{
+
 			data = "No network connection available.";
 			parseData(data);
 		}
 	}
 
+	// Parses csv files for forecast air quality data
 	public void parseData(String d) { parseData(d, Globals.getTimeOriginal()); }
 	public void parseData(String d, Calendar current)
 	{
@@ -277,6 +287,7 @@ public class Site implements Comparable<Site>
 		hasPM25 = (PM25avg_an!=-1);
 	}
 
+	// TODO
 	public Marker addSiteMarker(GoogleMap map, float clr)
 	{
 		if(marker!=null)
@@ -321,7 +332,6 @@ public class Site implements Comparable<Site>
 	{
 		distance = getDistanceToLL(lat, lon);
 	}
-
 	public static double degToRad(double deg) { return deg*(Math.PI/180.0); }
 
 	public void setMainLabels()
@@ -331,15 +341,33 @@ public class Site implements Comparable<Site>
 
 	public int getAQI(int hour)
 	{
-		return getAQI(OZONE8hr_ap[hour],PM258hr_ap[hour]);
+		if(Globals.useMethod.equals("AP"))
+			return getAQI(OZONE8hr_ap[hour],PM258hr_ap[hour]);
+		else if(Globals.useMethod.equals("AN"))
+			return getAQI(OZONE8hr_an[hour],PM258hr_an[hour]);
+		else
+			return getAQI(OZONE8hr_ap[hour],PM258hr_ap[hour]);
 	}
 	public int getAQI(float o3_toUse, float pm25_toUse)
 	{
 		if(!hasValues()) return -1;
 		if(o3_toUse==0&&pm25_toUse==0)
 		{
-			o3_toUse=OZONEavg_ap;
-			pm25_toUse=PM25avg_ap;
+			if(Globals.useMethod.equals("AP"))
+			{
+				o3_toUse = OZONEavg_ap;
+				pm25_toUse = PM25avg_ap;
+			}
+			else if(Globals.useMethod.equals("AN"))
+			{
+				o3_toUse = OZONEavg_an;
+				pm25_toUse = PM25avg_an;
+			}
+			else
+			{
+				o3_toUse = OZONEavg_ap;
+				pm25_toUse = PM25avg_ap;
+			}
 		}
 		if(o3_toUse==-1&&pm25_toUse==-1)
 			return 0;
@@ -433,14 +461,12 @@ public class Site implements Comparable<Site>
 		}
 		aqiPM25 = (int)(((I_hi-I_lo)/(BP_hi-BP_lo))*(pm25_toUse-BP_lo)+I_lo);
 
-
-
 		aqi=Math.max(aqiO3, aqiPM25);
 		return aqi;
 	}
 
 
-
+	// Downloads string data from URL passed, and then parses it
 	private class DownloadWebpageTask extends AsyncTask<String, Void, String>
 	{
 		protected Site parent = null;
@@ -484,7 +510,7 @@ public class Site implements Comparable<Site>
 			//Log.d(DEBUG_TAG, "Set labels for site "+Name);
 		}
 	}
-
+	// Makes connection with URL and uses readIt()
 	private String downloadUrl(String myurl) throws IOException
 	{
 		InputStream is = null;
@@ -512,7 +538,7 @@ public class Site implements Comparable<Site>
 				is.close();
 		}
 	}
-
+	// Reads string data from input string
 	public String readIt(InputStream stream) throws IOException
 	{
 		String result = "";

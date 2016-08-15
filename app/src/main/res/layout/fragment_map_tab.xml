@@ -134,15 +134,26 @@
             <ImageView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/imageViewDayShown"
-                tools:ignore="ContentDescription"/>
-            <!--android:src="@drawable/yesterday"-->
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:id="@+id/imageViewHourShown"
                 tools:ignore="ContentDescription"
+                android:layout_marginBottom="10dp"
                 />
+            <TextView
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:background="#ffffff"
+                android:textSize="16sp"
+                android:gravity="center_horizontal"
+                android:id="@+id/textViewDayShown"
+                android:visibility="invisible"
+                />
+           <!-- <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/imageViewDayShown"
+                tools:ignore="ContentDescription"/>-->
+            <!--android:src="@drawable/yesterday"-->
             <!--android:src="@drawable/hr15"-->
         </LinearLayout>
     </LinearLayout>

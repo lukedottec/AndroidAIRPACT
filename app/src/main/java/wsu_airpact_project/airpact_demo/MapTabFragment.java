@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 /**
  *  Created by Agent1729 on 9/7/2015 .
@@ -24,6 +25,10 @@ public class MapTabFragment extends TabActivity.TabFragment
 			hasInflated=true;
 			rv = rootView;
 		}
+
+		// DEBUG
+		Toast.makeText(getActivity().getApplicationContext(), "MapTabFragment.onCreateView(...)", Toast.LENGTH_LONG).show();
+
 		return rv;
 	}
 }

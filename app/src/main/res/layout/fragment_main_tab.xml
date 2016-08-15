@@ -95,6 +95,17 @@
             android:textOff="Forecast"/>
     </LinearLayout>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Using "
+        android:textSize="20sp"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:id="@+id/textViewUseMethod"/>
+
     <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
@@ -104,7 +115,7 @@
             android:orientation="vertical"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:id="@+id/LayoutCurrent">
 
             <LinearLayout
@@ -188,19 +199,18 @@
                 android:gravity="center"
                 android:id="@+id/textViewFarInTab"
                 android:layout_gravity="start|center_vertical"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="10dp"
                 android:textSize="14sp"
                 android:textStyle="italic"
                 android:visibility="invisible"/>
 
             <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:background="@drawable/ic_information"
                 android:id="@+id/buttonTooFarInfo"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:visibility="invisible"
                 android:onClick="openFarInfo"/>
 
@@ -211,6 +221,7 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:id="@+id/LayoutForecast"
+            android:layout_marginTop="10dp"
             android:visibility="invisible">
 
             <include layout="@layout/forecast_view_item"/>

@@ -19,70 +19,24 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".MyActivity"
-            android:configChanges="orientation|keyboardHidden"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait" >
-        </activity>
-        <activity
-            android:name=".NewsActivity"
-            android:configChanges="orientation|keyboardHidden"
-            android:label="@string/title_activity_news"
-            android:parentActivityName=".MyActivity"
-            android:screenOrientation="portrait" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="wsu_airpact_project.airpact_demo.MyActivity" />
-        </activity>
-        <activity
-            android:name=".HelpActivity"
-            android:configChanges="orientation|keyboardHidden"
-            android:label="@string/title_activity_help"
-            android:parentActivityName=".MyActivity"
-            android:screenOrientation="portrait" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="wsu_airpact_project.airpact_demo.MyActivity" />
-        </activity>
-        <activity
-            android:name=".AdvancedInfoActivity"
-            android:configChanges="orientation|keyboardHidden"
-            android:label="@string/title_activity_advanced_info"
-            android:parentActivityName=".MyActivity"
-            android:screenOrientation="portrait" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="wsu_airpact_project.airpact_demo.MyActivity" />
-        </activity>
-        <activity
             android:name=".SettingsActivity"
             android:configChanges="orientation|keyboardHidden"
             android:label="@string/title_activity_settings"
-            android:parentActivityName=".MyActivity"
+            android:parentActivityName=".TabActivity"
             android:screenOrientation="portrait" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="wsu_airpact_project.airpact_demo.MyActivity" />
+                android:value="wsu_airpact_project.airpact_demo.TabActivity" />
         </activity>
 
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <activity
-            android:name=".MapActivity"
-            android:configChanges="orientation|keyboardHidden"
-            android:label="@string/title_activity_map"
-            android:parentActivityName=".MyActivity"
-            android:screenOrientation="portrait" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="wsu_airpact_project.airpact_demo.MyActivity" />
-        </activity>
-
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyDCw4iOeR8qU-nB8-lyPzym0Qs3MN1ofXY" />
+            android:value="AIzaSyCScA0vOKktbm5NqsLLfrKUn9Abs7vlut4" />
+            <!--Chris' key: "AIzaSyDCw4iOeR8qU-nB8-lyPzym0Qs3MN1ofXY" />-->
 
         <activity
             android:name=".TabActivity"
